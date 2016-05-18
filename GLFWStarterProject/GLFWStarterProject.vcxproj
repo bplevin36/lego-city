@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="..\Camera.h" />
     <ClInclude Include="..\Cube.h" />
+    <ClInclude Include="..\Curve.h" />
     <ClInclude Include="..\Cylinder.h" />
     <ClInclude Include="..\Geode.h" />
     <ClInclude Include="..\Group.h" />
@@ -36,6 +37,7 @@
   <ItemGroup>
     <ClCompile Include="..\Camera.cpp" />
     <ClCompile Include="..\Cube.cpp" />
+    <ClCompile Include="..\Curve.cpp" />
     <ClCompile Include="..\Cylinder.cpp" />
     <ClCompile Include="..\Geode.cpp" />
     <ClCompile Include="..\Group.cpp" />
@@ -49,6 +51,8 @@
     <ClCompile Include="..\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\curve.frag" />
+    <None Include="..\curve.vert" />
     <None Include="..\shader.frag" />
     <None Include="..\shader.vert" />
     <None Include="..\skybox.frag" />

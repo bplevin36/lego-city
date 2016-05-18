@@ -54,6 +54,9 @@
     <ClInclude Include="..\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Curve.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\main.cpp">
@@ -95,6 +98,9 @@
     <ClCompile Include="..\Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Curve.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -108,6 +114,12 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="..\skybox.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\curve.frag">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\curve.vert">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

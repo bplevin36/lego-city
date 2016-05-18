@@ -3,6 +3,7 @@
 #include "Pod.h"
 #include "MatrixTransform.h"
 #include "Camera.h"
+#include "Curve.h"
 
 const char* window_title = "GLFW Starter Project";
 const char* cylinder_filepath = "cylinder.obj";
@@ -26,6 +27,7 @@ bool lastInitialized = false;
 
 GLint skyShader;
 GLuint shaderProgram;
+GLuint curveShader;
 
 // Default camera parameters
 glm::vec3 cam_pos(0.0f, 0.0f, 20.0f);		// e  | Position of camera
@@ -42,162 +44,12 @@ int Window::height;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
 
-//Initial wedding cake positions
-glm::mat4 basescale = glm::scale(glm::mat4(1.0f), glm::vec3(5.0, 0.2, 5.0));
-glm::mat4 vposttrans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 3.0, 0.0));
-glm::mat4 vpostscale = glm::scale(glm::mat4(1.0f), glm::vec3(0.75, 3.0, 0.75));
-glm::mat4 beartrans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.1, -0.1));
-glm::mat4 bearscale = glm::scale(glm::mat4(1.0f), glm::vec3(0.4, 0.4, 0.4));
-glm::mat4 bearcamtrans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -0.2));
+Curve c1;
 
-glm::mat4 leveltrans[3] = {
-	glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 1.0, 0.0)),
-	glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 3.0, 0.0)),
-	glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 5.0, 0.0))
-};
-
-glm::mat4 armtrans = glm::translate(glm::rotate(glm::mat4(1.0f), 90.0f / 180.0f * glm::pi<float>(), glm::vec3(1.0, 0.0, 0.0)), glm::vec3(0.0, 3.0, 0.0));
-glm::mat4 armrot[3] = {
-	glm::rotate(glm::mat4(1.0f), 0.0f / 180.0f * glm::pi<float>(), glm::vec3(0.0, 1.0, 0.0)),
-	glm::rotate(glm::mat4(1.0f), 120.0f / 180.0f * glm::pi<float>(), glm::vec3(0.0, 1.0, 0.0)),
-	glm::rotate(glm::mat4(1.0f), 240.0f / 180.0f * glm::pi<float>(), glm::vec3(0.0, 1.0, 0.0))
-};
-glm::mat4 armscale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5, 3.0, 0.5));
-
-glm::mat4 rodtrans1 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.5, -0.5));
-glm::mat4 rodtrans2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 3.0, 0.0));
-glm::mat4 rodrot[3] = {
-	glm::rotate(glm::mat4(1.0f), 0.0f / 180.0f * glm::pi<float>(), glm::vec3(0.0, 0.0, 1.0)),
-	glm::rotate(glm::mat4(1.0f), 120.0f / 180.0f * glm::pi<float>(), glm::vec3(0.0, 0.0, 1.0)),
-	glm::rotate(glm::mat4(1.0f), 240.0f / 180.0f * glm::pi<float>(), glm::vec3(0.0, 0.0, 1.0))
-};
-glm::mat4 rodscale = glm::scale(glm::mat4(1.0f), glm::vec3(0.25, 0.75, 0.25));
-
-glm::mat4 podtrans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.5, -0.5));
-glm::mat4 podrot = glm::rotate(glm::mat4(1.0f), -90.0f / 180.0f * glm::pi<float>(), glm::vec3(1.0, 0.0, 0.0));
-glm::mat4 podscale = glm::scale(glm::mat4(1.0f), glm::vec3(0.5));
-
-/*
-Levels are vertial layers, each containing 3 arms.
-Arms each hold 3 rods.
-Rods each hold 1 pod.
-*/
-Camera *bearcam;
-MatrixTransform *weddingCake, *vpostTrans, *vpostScale, *base;
-MatrixTransform *bearTrans, *bearScale, *bearCamTrans;
-MatrixTransform *level[3];
-
-MatrixTransform *armTrans[3][3];
-MatrixTransform *armRot[3][3];
-MatrixTransform *armScale[3][3];
-MatrixTransform *armLen[3][3];			// Double for lengthening arms
-MatrixTransform *armLenScale[3][3];		// Scale for double
-
-MatrixTransform *rodTrans1[3][3][3];
-MatrixTransform *rodTrans2[3][3][3];
-MatrixTransform *rodRot[3][3][3];
-MatrixTransform *rodScale[3][3][3];
-MatrixTransform *rodLen[3][3][3];		// Double for lengthening rods
-MatrixTransform *rodLenScale[3][3][3];	// Scale for double
-
-MatrixTransform *podTrans[3][3][3];
-MatrixTransform *podRot[3][3][3];
-MatrixTransform *podScale[3][3][3];
-
-bool using_bear_cam = false; // True when in bear camera view
-
-							 // Animation variables
-float armspin = 0.1;
-float rodspin = 0.25;
-float podspin = 0.5;
-bool vpost_increasing = true;
-
-// Used for animation timing
-int framecount = 0;
 
 
 void Window::initialize_objects()
 {
-	// Initialize nodes
-	weddingCake = new MatrixTransform();
-	base = new MatrixTransform(basescale);
-	vpostScale = new MatrixTransform(vpostscale);
-	vpostTrans = new MatrixTransform(vposttrans);
-
-	bearScale = new MatrixTransform(bearscale);
-	bearTrans = new MatrixTransform(beartrans);
-	bearCamTrans = new MatrixTransform(bearcamtrans);
-	bearcam = new Camera();
-
-	weddingCake->addChild(base);
-	weddingCake->addChild(vpostTrans);
-	base->addChild(new OBJObject(cylinder_filepath));
-	vpostTrans->addChild(vpostScale);
-	vpostScale->addChild(new OBJObject(cylinder_filepath));
-
-	// i = level #
-	// j = arm #
-	// k = rod #
-	for (int i = 0; i < 3; i++) {
-		level[i] = new MatrixTransform(leveltrans[i]);
-		weddingCake->addChild(level[i]);
-
-		for (int j = 0; j < 3; j++) {
-			armRot[i][j] = new MatrixTransform(armrot[j]);
-			armTrans[i][j] = new MatrixTransform(armtrans);
-			armScale[i][j] = new MatrixTransform(armscale);
-			armLen[i][j] = new MatrixTransform(armtrans);
-			armLenScale[i][j] = new MatrixTransform(armscale);
-
-			armScale[i][j]->addChild(new OBJObject(cylinder_filepath));
-			armLenScale[i][j]->addChild(new OBJObject(cylinder_filepath));
-			armTrans[i][j]->addChild(armScale[i][j]);
-			armLen[i][j]->addChild(armLenScale[i][j]);
-			armRot[i][j]->addChild(armTrans[i][j]);
-			armRot[i][j]->addChild(armLen[i][j]);
-			level[i]->addChild(armRot[i][j]);
-
-			for (int k = 0; k < 3; k++) {
-				rodTrans1[i][j][k] = new MatrixTransform(rodtrans1);
-				rodRot[i][j][k] = new MatrixTransform(rodrot[k]);
-				rodTrans2[i][j][k] = new MatrixTransform(rodtrans2);
-				rodScale[i][j][k] = new MatrixTransform(rodscale);
-
-				rodLen[i][j][k] = new MatrixTransform(rodtrans1);
-				rodLenScale[i][j][k] = new MatrixTransform(rodscale);
-
-				podRot[i][j][k] = new MatrixTransform(podrot);
-				podTrans[i][j][k] = new MatrixTransform(podtrans);
-				podScale[i][j][k] = new MatrixTransform(podscale);
-
-				rodScale[i][j][k]->addChild(new OBJObject(cylinder_filepath));
-				rodTrans1[i][j][k]->addChild(rodScale[i][j][k]);
-				rodRot[i][j][k]->addChild(rodTrans1[i][j][k]);
-				rodRot[i][j][k]->addChild(rodLen[i][j][k]);
-				rodTrans2[i][j][k]->addChild(rodRot[i][j][k]);
-
-				rodLenScale[i][j][k]->addChild(new OBJObject(cylinder_filepath));
-				rodLen[i][j][k]->addChild(rodLenScale[i][j][k]);
-
-				podScale[i][j][k]->addChild(new OBJObject(pod_filepath));
-				podRot[i][j][k]->addChild(podScale[i][j][k]);
-				podTrans[i][j][k]->addChild(podRot[i][j][k]);
-				rodTrans1[i][j][k]->addChild(podTrans[i][j][k]);
-				armTrans[i][j]->addChild(rodTrans2[i][j][k]);
-			}
-		}
-	}
-
-	// Add bear
-	bear = new OBJObject(bear_filepath);
-	podRot[1][0][0]->addChild(bearTrans);
-	bearTrans->addChild(bearScale);
-	bearTrans->addChild(bearCamTrans);
-	bearScale->addChild(bear);
-	bearCamTrans->addChild(bearcam);
-
-	// Initialize transformation matricies of all children
-	weddingCake->update(glm::mat4());
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
 	// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
@@ -213,25 +65,26 @@ void Window::initialize_objects()
 	skyShader = LoadShaders("skybox.vert", "skybox.frag");
 #endif
 
-	root = new Group();
-	Pod* pod = new Pod();
-	chair = new Pod();
-	root->addChild(pod);
-	chair->update(glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 4.0f)));
-	chair->update(glm::rotate(glm::mat4(), glm::pi<float>() / 2, glm::vec3(1.0, 0, 0)));
-	root->addChild(chair);
-	root->update(glm::rotate(glm::mat4(), glm::pi<float>(), glm::vec3(0,0,1.0)));
-
-
-
-
-
+#ifdef _WIN32 // Windows (both 32 and 64 bit versions)
+	curveShader = LoadShaders("../curve.vert", "../curve.frag");
+#else // Not windows
+	curveShader = LoadShaders("curve.vert", "curve.frag");
+#endif
+	glm::mat4 m1 = glm::mat4(
+		glm::vec4(1.0, 1.0, 1.0, 1.0),
+		glm::vec4(-1.0, 1.0, 1.0, 1.0),
+		glm::vec4(-1.0, -1.0, 1.0, 1.0),
+		glm::vec4(1.0, -1.0, 1.0, 1.0)
+	);
+	c1 = Curve(m1);
 
 }
 
 void Window::clean_up()
 {
 	glDeleteProgram(shaderProgram);
+	glDeleteProgram(curveShader);
+	glDeleteProgram(skyShader);
 }
 
 GLFWwindow* Window::create_window(int width, int height)
@@ -288,69 +141,6 @@ void Window::resize_callback(GLFWwindow* window, int width, int height)
 void Window::idle_callback()
 {
 	
-	// Animation
-	framecount += 1;
-	if (framecount >= 500) {
-		framecount = 0;
-		vpost_increasing = !vpost_increasing;
-	}
-	if (vpost_increasing) {
-		vpostScale->updateTransform(glm::scale(glm::mat4(), glm::vec3(1.0, 1.001, 1.0)));
-		vpostTrans->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.004, 0.0)));	
-		level[0]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.004, 0.0)));
-		level[1]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.006, 0.0)));
-		level[2]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.008, 0.0)));
-
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				for (int k = 0; k < 3; k++) {
-					rodTrans1[i][j][k]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.002, 0.0)));
-				}
-				armTrans[i][j]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.0, 0.01)));
-			}
-		}
-	}
-	else {
-		vpostScale->updateTransform(glm::scale(glm::mat4(), glm::vec3(1.0, 1.0 / 1.001, 1.0)));
-		vpostTrans->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, -0.004, 0.0)));
-		level[0]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, -0.004, 0.0)));
-		level[1]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, -0.006, 0.0)));
-		level[2]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, -0.008, 0.0)));
-
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++) {
-				for (int k = 0; k < 3; k++) {
-					rodTrans1[i][j][k]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, -0.002, 0.0)));
-				}
-				armTrans[i][j]->updateTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.0, -0.01)));
-			}
-		}
-	}
-
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
-			for (int k = 0; k < 3; k++) {
-				rodRot[i][j][k]->updateTransform(glm::rotate(glm::mat4(1.0f), rodspin / 180.0f * glm::pi<float>(), glm::vec3(0.0, 0.0, 1.0)));
-				podRot[i][j][k]->updateTransform(glm::rotate(glm::mat4(1.0f), podspin / 180.0f * glm::pi<float>(), glm::vec3(0.0, 0.0, 1.0)));
-			}
-			armRot[i][j]->updateTransform(glm::rotate(glm::mat4(1.0f), armspin / 180.0f * glm::pi<float>(), glm::vec3(0.0, 1.0, 0.0)));
-		}
-	}
-
-	weddingCake->update(glm::mat4());
-
-	// Manage camera
-	if (using_bear_cam) {
-		glm::vec4 new_cam_pos = bearcam->getToWorld() * glm::vec4(0.0, 0.0, 0.0, 1.0);
-		glm::vec4 new_cam_look_at = bearcam->getToWorld() * glm::vec4(0.0, 0.0, 1.0, 1.0);
-		V = glm::lookAt(glm::vec3(new_cam_pos), glm::vec3(new_cam_look_at), cam_up);
-	}
-	else {
-		V = glm::lookAt(cam_pos, cam_look_at, cam_up);
-	}
-
-	// Call second time to update camera matrix
-	weddingCake->update(glm::mat4());
 }
 
 void Window::display_callback(GLFWwindow* window)
@@ -362,10 +152,12 @@ void Window::display_callback(GLFWwindow* window)
 	glUseProgram(skyShader);
 	skybox->draw(skyShader);
 
-	// Use the shader of programID
-	glUseProgram(shaderProgram);
+	//TODO draw curves
+	glUseProgram(curveShader);
+	c1.draw(curveShader);
 
-	
+	// Use the shader of programID
+	glUseProgram(shaderProgram);	
 	//Initialize lighting
 	glClearColor(0.75f, 0.52f, 0.3f, 1.0f);
 		glm::vec3 pointLightColors[] = {
@@ -411,8 +203,6 @@ void Window::display_callback(GLFWwindow* window)
 	//Assign uniforms
 	GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
 	glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
-
-	weddingCake->draw(shaderProgram);
 
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
@@ -618,9 +408,6 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			spotExp = 1.0f;
 			spotWidth = 12.5f;
 			active->reset();
-		}
-		else if (key == GLFW_KEY_C) {
-			using_bear_cam = !using_bear_cam;
 		}
 		// Check if escape was pressed
 		if (key == GLFW_KEY_ESCAPE)
