@@ -11,8 +11,9 @@ OBJObject::OBJObject() {
 
 }
 
-OBJObject::OBJObject(const char *filepath)
+OBJObject::OBJObject(const char *filepath, GLuint environment)
 {
+	box = environment;
 	parse(filepath);
 	this->setupBuffers();
 }
@@ -22,7 +23,8 @@ void OBJObject::setupBuffers(){
 		return;//skip setup if data not initialized already
 	}
 	toWorld = glm::mat4(1.0f);
-	this->angle = 0.0f;
+	this->angleX = 0.0f;
+	this->angleY = 0.0f;
 
 	// Create buffers/arrays
 	glGenVertexArrays(1, &VAO);
@@ -154,6 +156,7 @@ void OBJObject::parse(const char *filepath)
 	int i;
 	for (i = 0; i < vertices.size(); i++) {
 		vertices[i] = vertices[i] - center;
+		vertices[i].y += 0.5;
 	}
 	//calculate scaling factor and rescale
 	min = glm::vec3(INFINITY);
@@ -207,6 +210,9 @@ void OBJObject::draw(GLuint shaderProgram)
 	GLuint modelID = glGetUniformLocation(shaderProgram, "model");
 	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 	glUniformMatrix4fv(modelID, 1, GL_FALSE, &toWorld[0][0]);
+	
+	glUniform1i(glGetUniformLocation(shaderProgram, "skybox"), 0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, box);
 
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
@@ -222,14 +228,24 @@ void OBJObject::update()
 {
 	//spin(1.0f);
 	this->toWorld = this->translation;
-	this->toWorld = this->toWorld * this->rotate;
+	this->toWorld = this->toWorld * this->rotateX;
+	this->toWorld = this->toWorld * this->rotateY;
 	this->toWorld = this->toWorld * this->scaling;
 	this->toWorld = this->orbiting * this->toWorld;
 }
 
+void OBJObject::setToWorld(glm::mat4 newWorld) {
+	toWorld = newWorld;
+}
+
+glm::vec3 OBJObject::getPos() {
+	return position;
+}
+
 void OBJObject::reset() {
 	this->translation = glm::mat4(1.0f);
-	this->rotate = glm::mat4(1.0f);
+	this->rotateX = glm::mat4(1.0f);
+	this->rotateY = glm::mat4(1.0f);
 	this->orbiting = glm::mat4(1.0f);
 	this->scaling = glm::mat4(1.0f);
 	this->scaleFactor = 1.0f;
@@ -237,12 +253,18 @@ void OBJObject::reset() {
 	this->position = glm::vec3(0.0f);
 }
 
-void OBJObject::spin(float deg)
+void OBJObject::setAngleX(float deg)
 {
-	this->angle += deg;
-	if (this->angle > 360.0f || this->angle < -360.0f) this->angle = 0.0f;
+	this->angleX = deg;
 	// This creates the matrix to rotate the cube
-	this->rotate = glm::rotate(glm::mat4(1.0f), this->angle / 180.0f * glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
+	this->rotateX = glm::rotate(glm::mat4(1.0f), this->angleX / 180.0f * glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+}
+
+void OBJObject::setAngleY(float deg)
+{
+	this->angleY = deg;
+	// This creates the matrix to rotate the cube
+	this->rotateY = glm::rotate(glm::mat4(1.0f), this->angleY / 180.0f * glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
 

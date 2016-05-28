@@ -2,6 +2,6 @@
 
 
 
-Cylinder::Cylinder() : OBJObject("cylinder.obj")
+Cylinder::Cylinder(GLuint env) : OBJObject("cylinder.obj", env)
 {
 }

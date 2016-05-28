@@ -4,6 +4,6 @@ class Pod :
 	public OBJObject
 {
 public:
-	Pod();
+	Pod(GLuint);
 };
 

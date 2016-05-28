@@ -4,6 +4,6 @@ class Cylinder :
 	public OBJObject
 {
 public:
-	Cylinder();
+	Cylinder(GLuint env);
 };
 

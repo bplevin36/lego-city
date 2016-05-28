@@ -1,5 +1,5 @@
 #include "Pod.h"
 
-Pod::Pod() : OBJObject("pod.obj")
+Pod::Pod(GLuint env) : OBJObject("pod.obj", env)
 {
 }

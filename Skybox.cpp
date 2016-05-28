@@ -160,6 +160,10 @@ GLuint Skybox::loadCubemap(vector<const GLchar*> faces)
 	return textureID;
 }
 
+GLuint Skybox::getCubemap() {
+	return cubemapTexture;
+}
+
 void Skybox::draw(GLuint shaderProgram) {
 	GLuint MatrixID = glGetUniformLocation(shaderProgram, "view");
 	glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &Window::V[0][0]);

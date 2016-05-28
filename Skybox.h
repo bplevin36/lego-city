@@ -11,6 +11,7 @@ public:
 	//Skybox(char* filename);
 	void draw(GLuint);
 	~Skybox();
+	GLuint getCubemap();
 private:
 	GLuint loadCubemap(std::vector<const GLchar*>);
 	GLuint cubemapTexture, VAO, VBO, EBO;

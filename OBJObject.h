@@ -19,19 +19,21 @@ protected:
 private:
 glm::vec3 position;
 glm::mat4 toWorld;
-glm::mat4 rotate;
+glm::mat4 rotateX;
+glm::mat4 rotateY;
 glm::mat4 translation;
 glm::mat4 scaling;
 glm::mat4 orbiting;
 
-float angle, orbitAngle = 0.0f;
+float angleX, angleY, orbitAngle = 0.0f;
 float scaleFactor = 1.0f;
 glm::vec3 max = glm::vec3(-INFINITY);
 glm::vec3 min = glm::vec3(INFINITY);
+GLuint box;	
 
 public:
 	void setupBuffers();
-	OBJObject(const char* filepath);
+	OBJObject(const char* filepath, GLuint environment);
 	OBJObject();
 
 	static GLuint shaderProgram;
@@ -45,11 +47,14 @@ public:
 	virtual void draw(GLuint);
 
 	void update();
-	void spin(float deg);
+	void setAngleX(float deg);
+	void setAngleY(float deg);
 	static void print_matrix(glm::mat4);
 	std::vector<glm::vec3> getVertices();
 	glm::vec3 getNormal(int);
 	glm::mat4 getToWorld();
+	void setToWorld(glm::mat4);
+	glm::vec3 getPos();
 
 	GLuint VBO, VAO, VBON, EBO;
 };

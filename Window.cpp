@@ -4,6 +4,11 @@
 #include "MatrixTransform.h"
 #include "Camera.h"
 #include "Curve.h"
+#include <cmath>
+#include <glm/gtx/vector_angle.hpp>
+#include <glm/gtx/string_cast.hpp>
+
+#define NUM_CURVES 8
 
 const char* window_title = "GLFW Starter Project";
 const char* cylinder_filepath = "cylinder.obj";
@@ -16,12 +21,20 @@ OBJObject* active = NULL;
 Group* root;
 Pod* chair;
 Skybox* skybox;
+Point* selectedPoint = NULL;
+int selectedCurve = -1;
+
 float pointSize = 1.0f;
 float spotExp = 1.0f;
 float spotWidth = 12.5f;
-int currLight = 0;
+double podV = 0.00005f;
+float podT = 0.0;
+int currCurve = 0;
+bool moving = false;
+bool direction = true;
 
 int mouseButton = -1; //current mouse state
+int frameCount = 0;
 glm::vec2 lastMouse;
 bool lastInitialized = false;
 
@@ -44,7 +57,7 @@ int Window::height;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
 
-Curve c1;
+Curve curves[NUM_CURVES];
 
 
 
@@ -52,7 +65,8 @@ void Window::initialize_objects()
 {
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
-	// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
+	chair = new Pod(skybox->getCubemap());
+		// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
 #ifdef _WIN32 // Windows (both 32 and 64 bit versions)
 	shaderProgram = LoadShaders("../shader.vert", "../shader.frag");
 #else // Not windows
@@ -71,13 +85,45 @@ void Window::initialize_objects()
 	curveShader = LoadShaders("curve.vert", "curve.frag");
 #endif
 	glm::mat4 m1 = glm::mat4(
-		glm::vec4(1.0, 1.0, 1.0, 1.0),
-		glm::vec4(-1.0, 1.0, 1.0, 1.0),
-		glm::vec4(-1.0, -1.0, 1.0, 1.0),
-		glm::vec4(1.0, -1.0, 1.0, 1.0)
+		glm::vec4(4.0, 0.0, 4.0, 1.0),
+		glm::vec4(5.0, 0.0, 3.0, 1.0),
+		glm::vec4(5.0, 0.0, 2.0, 1.0),
+		glm::vec4(6.0, 0.0, 0.0, 1.0)
 	);
-	c1 = Curve(m1);
+	//Initialize curves
+	for (int i = 0; i < NUM_CURVES; i++) {
+		glm::mat4 mul = glm::rotate(glm::mat4(1.0), ((360.0f/(float)NUM_CURVES) * i) / 180.0f * glm::pi<float>(), glm::vec3(0.0, 1.0, 0.0));
 
+		curves[i] = Curve(mul * m1);
+	}
+	//Guarantee C0 continuity
+	for (int i = 0; i < NUM_CURVES; i++) {
+		if (i > 0) {
+			curves[i].setControlPoint(0, curves[i-1].getControlPoint(3));
+		}
+	}
+	curves[NUM_CURVES - 1].setControlPoint(3, curves[0].getControlPoint(0));
+	//make a peak
+	curves[0].getControlPoint(0)->p = curves[0].getControlPoint(0)->p + glm::vec3(0.0, 6.0, 0.0);
+	curves[NUM_CURVES - 1].getControlPoint(2)->p += glm::vec3(0.0, 6.0, 0.0);
+	curves[0].getControlPoint(1)->p = curves[0].getPoint(0) + (curves[0].getPoint(0) - curves[NUM_CURVES - 1].getPoint(2));
+	//establish C1 continuity
+	Window::continuity();
+	std::cout << "Max height: " << Curve::maxHeight.y << std::endl;
+	chair->translate(curves[currCurve].eval(podT));
+	chair->update();
+}
+
+void Window::continuity() {
+	for (int i = 0, n=1; i < NUM_CURVES; i++,n++) {
+		if (n == NUM_CURVES)
+			n = 0;
+		float distance = glm::length(curves[i].getPoint(3) - curves[n].getPoint(1));
+		glm::vec3 initialHandle = glm::normalize(curves[i].getPoint(3) - curves[i].getPoint(2));
+		glm::vec3 newHandle = initialHandle * distance;
+		curves[n].setPoint(1, curves[i].getPoint(3) + newHandle);
+		curves[n].reevaluate();
+	}
 }
 
 void Window::clean_up()
@@ -140,74 +186,153 @@ void Window::resize_callback(GLFWwindow* window, int width, int height)
 
 void Window::idle_callback()
 {
-	
+	if (moving) {
+		//move pod along
+		if (direction) {
+			podT += podV;
+		}
+		else {
+			podT -= podV;
+		}
+		if (podT > 1.0f) {
+			podT -= 1.0f;
+			if (currCurve == NUM_CURVES - 1) {
+				currCurve = 0;
+			}
+			else {
+				currCurve++;
+			}
+		}
+		else if (podT < 0.0f) {
+			podT += 1.0f;
+			if (currCurve == 0) {
+				currCurve = NUM_CURVES - 1;
+			}
+			else {
+				currCurve--;
+			}
+		}
+		glm::vec3 diff = curves[currCurve].eval(podT) - chair->getPos();
+		/* non working rotation code
+		glm::vec3 newZ = glm::normalize(diff);
+		glm::vec3 newX = glm::normalize(glm::cross(glm::vec3(0.0, 1.0, 0.0), newZ));
+		glm::vec3 newY = glm::normalize(glm::cross(newZ, newX));
+		glm::mat4 newCoord = glm::mat4();
+		newCoord[0] = glm::vec4(newX, 0.0);
+		newCoord[1] = glm::vec4(newY, 0.0);
+		newCoord[2] = glm::vec4(newZ, 0.0);
+		newCoord[3] = glm::vec4(0.0);
+		OBJObject::print_matrix(newCoord);
+		*/
+		//std::cout << "Pod delta: " << glm::to_string(diff) << std::endl;
+
+		float angleX = asin(fmod(diff.y / glm::length(diff), 1.0));
+		float angleY;
+		angleY = atan2(diff.x, diff.z);
+		//std::cout << "AngleX: " << angleX*(180/glm::pi<float>()) << std::endl;
+		
+		chair->translate(diff);
+		chair->update();
+		chair->setAngleX(angleX*(180/glm::pi<float>()));
+		//chair->update();
+		chair->setAngleY(angleY*(180/glm::pi<float>()));
+		chair->update();
+		//chair->setToWorld(chair->getToWorld() * newCoord);
+
+		//process velocity
+		float deltaH = diff.y;
+		if (deltaH > 0.0) {//slowing
+			podV -= sqrt(deltaH*0.0000000003);
+			if (podV < 0.000000001) {
+				direction = !direction;
+				podV = -podV;
+			}
+		}
+		else {//speeding
+			podV += sqrt(-deltaH*0.0000000003);
+		}
+	}
 }
 
 void Window::display_callback(GLFWwindow* window)
 {
-	// Clear the color and depth buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if (frameCount == 0) {
+		// Clear the color and depth buffers
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//Draw skybox
-	glUseProgram(skyShader);
-	skybox->draw(skyShader);
+		//Draw skybox
+		glUseProgram(skyShader);
+		skybox->draw(skyShader);
 
-	//TODO draw curves
-	glUseProgram(curveShader);
-	c1.draw(curveShader);
+		//TODO draw curves
+		glUseProgram(curveShader);
+		int i;
+		for (i = 0; i < NUM_CURVES; i++) {
+			curves[i].draw(curveShader);
+		}
 
-	// Use the shader of programID
-	glUseProgram(shaderProgram);	
-	//Initialize lighting
-	glClearColor(0.75f, 0.52f, 0.3f, 1.0f);
+
+		// Use the shader of programID
+		glUseProgram(shaderProgram);
+		//Initialize lighting
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glm::vec3 pointLightColors[] = {
 		glm::vec3(1.0f, 0.6f, 0.0f),
 		glm::vec3(1.0f, 0.0f, 0.0f),
 		glm::vec3(1.0f, 1.0, 0.0),
 		glm::vec3(0.2f, 0.2f, 1.0f)
-	};
+		};
 
-	// Set material
-	glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.0f, 0.0f, 0.0f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.5f, 0.25f, 0.5f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.45f, 0.55f, 0.45f);
-	glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 32.0);
-	// Directional light
-	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
-	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.3f, 0.24f, 0.14f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 0.7f, 0.42f, 0.26f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
-	
-	// Point light 1
-	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
-	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].ambient"), pointLightColors[0].x * 0.1, pointLightColors[0].y * 0.1, pointLightColors[0].z * 0.1);
-	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].diffuse"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
-	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].specular"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
-	glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].constant"), 1.0f);
-	glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].linear"), 0.09);
-	glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].quadratic"), 0.032);
-	
-	// SpotLight
-	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
-	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
-	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.ambient"), 0.5f, 0.3f, 0.3f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.diffuse"), 0.8f, 0.8f, 0.0f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.specular"), 0.8f, 0.8f, 0.0f);
-	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.constant"), 1.0f);
-	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.linear"), 0.09);
-	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.quadratic"), 0.032);
-	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.exponent"), spotExp);
-	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.cutOff"), glm::cos(glm::radians(spotWidth)));
-	
+		// Set material
+		glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.0f, 0.0f, 0.0f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.5f, 0.25f, 0.5f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.45f, 0.55f, 0.45f);
+		glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 32.0);
+		
+		// Directional light
+		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
+		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.3f, 0.24f, 0.14f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 0.7f, 0.42f, 0.26f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
 
-	//Assign uniforms
-	GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
-	glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
+		// Point light 1
+		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
+		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].ambient"), pointLightColors[0].x * 0.1, pointLightColors[0].y * 0.1, pointLightColors[0].z * 0.1);
+		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].diffuse"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
+		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].specular"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
+		glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].constant"), 1.0f);
+		glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].linear"), 0.09);
+		glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].quadratic"), 0.032);
 
-	// Gets events, including input such as keyboard and mouse or window resizing
-	glfwPollEvents();
-	// Swap buffers
-	glfwSwapBuffers(window);
+		// SpotLight
+		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
+		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
+		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.ambient"), 0.5f, 0.3f, 0.3f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.diffuse"), 0.8f, 0.8f, 0.0f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.specular"), 0.8f, 0.8f, 0.0f);
+		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.constant"), 1.0f);
+		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.linear"), 0.09);
+		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.quadratic"), 0.032);
+		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.exponent"), spotExp);
+		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.cutOff"), glm::cos(glm::radians(spotWidth)));
+
+
+		//Assign uniforms
+		GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
+		glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
+
+		chair->draw(shaderProgram);
+		// Gets events, including input such as keyboard and mouse or window resizing
+		glfwPollEvents();
+		// Swap buffers
+		glfwSwapBuffers(window);
+	}
+	else if (frameCount > 0) {
+		frameCount--;
+	}
+	else {
+		frameCount = 0;
+	}
 }
 
 
@@ -224,56 +349,126 @@ glm::vec3 trackBallMap(double xpos, double ypos) {
 	return v;  // return the mouse location on the surface of the trackball
 }
 
+void Window::movePoint(glm::mat4 transform) {
+	selectedPoint->p = glm::vec3(transform * glm::vec4(selectedPoint->p, 1.0));
+	int index = -1;
+	for (int i = 0; i < 4; i++) {
+		if (curves[selectedCurve].getControlPoint(i) == selectedPoint) {
+			index = i;
+		}
+	}
+	if (index == 0) {
+		Point *next, *prev;
+		next = curves[selectedCurve].getControlPoint(1);
+		if (selectedCurve == 0) {
+			prev = curves[NUM_CURVES - 1].getControlPoint(2);
+		}
+		else {
+			prev = curves[selectedCurve - 1].getControlPoint(2);
+		}
+		next->p = glm::vec3(transform * glm::vec4(next->p, 1.0));
+		prev->p = glm::vec3(transform * glm::vec4(prev->p, 1.0));
+	}
+	else if (index == 1) {//approximating points
+		Point* other;
+		if (selectedCurve == 0) {
+			other = curves[NUM_CURVES-1].getControlPoint(2);
+		}else{
+			other = curves[selectedCurve -1].getControlPoint(2);
+		}
+		glm::vec3 trans = glm::vec3(glm::column(transform, 3));
+		glm::mat4 newTrans = glm::column(transform, 3, glm::vec4(-trans,0.0));
+		other->p = glm::vec3(newTrans *glm::vec4(other->p, 1.0));
+	}
+	else if (index == 2) {
+		Point* other;
+		if (selectedCurve == NUM_CURVES-1) {
+			other = curves[0].getControlPoint(1);
+		}
+		else {
+			other = curves[selectedCurve +1].getControlPoint(1);
+		}
+		glm::vec3 trans = glm::vec3(glm::column(transform, 3));
+		glm::mat4 newTrans = glm::column(transform, 3, glm::vec4(-trans, 0.0));
+		other->p = glm::vec3(newTrans *glm::vec4(other->p, 1.0));
+	}
+	else if (index == 3) {
+		Point *next, *prev;
+		prev = curves[selectedCurve].getControlPoint(2);
+		if (selectedCurve == NUM_CURVES -1) {
+			next = curves[0].getControlPoint(1);
+		}
+		else {
+			next = curves[selectedCurve + 1].getControlPoint(1);
+		}
+		next->p = glm::vec3(transform * glm::vec4(next->p, 1.0));
+		prev->p = glm::vec3(transform * glm::vec4(prev->p, 1.0));
+	}
+
+	int next = selectedCurve + 1;
+	int prev = selectedCurve - 1;
+	if (next == NUM_CURVES)
+		next = 0;
+	if (prev == -1)
+		prev = NUM_CURVES - 1;
+
+	curves[selectedCurve].reevaluate();
+	curves[prev].reevaluate();
+	curves[next].reevaluate();
+}
+
 void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 	double deltaX = 0.0;
 	double deltaY = 0.0;
-	
+
 	if (lastInitialized) {
 		deltaX = xpos - lastMouse.x;
 		deltaY = ypos - lastMouse.y;
 	}
 
-		if (mouseButton == GLFW_MOUSE_BUTTON_RIGHT && active != NULL){
-			if (currLight == 0) {
-				active->translate(glm::vec3(deltaX*0.035, (0 - deltaY)*0.035, 0.0));
-			}
-			else if (currLight == 3) {//spotlight width adjustment
-				spotWidth += (deltaY * 0.2);
-			}
-		}
-		else if (mouseButton == GLFW_MOUSE_BUTTON_LEFT) {
-			glm::vec3 oldPoint = trackBallMap(lastMouse.x, lastMouse.y);
-			glm::vec3 newPoint = trackBallMap(xpos, ypos);
-			glm::vec3 cross = glm::cross(oldPoint, newPoint);
+	//handle control point movement
+	if (selectedPoint) {
+		glm::vec3 cam_depth = cam_look_at - cam_pos;
+		glm::vec3 cam_x = glm::normalize(glm::cross(cam_depth, cam_up));
+		//std::cout << "Dx: " << deltaX << ", Dy: " << deltaY << std::endl;
+		glm::vec3 distance = cam_x * ((float)deltaX/110.0f) + cam_up*((float)-deltaY/110.0f);
 
-			float angle = 40.0 * std::acos(glm::dot(oldPoint, newPoint) / (glm::length(newPoint) * glm::length(oldPoint)));
-			//std::cout << "Trying to turn " << angle << " degrees" << std::endl;
+		movePoint(glm::translate(glm::mat4(), distance));		
+	}
+	else if (mouseButton == GLFW_MOUSE_BUTTON_LEFT) {
+		glm::vec3 oldPoint = trackBallMap(lastMouse.x, lastMouse.y);
+		glm::vec3 newPoint = trackBallMap(xpos, ypos);
+		glm::vec3 cross = glm::cross(oldPoint, newPoint);
+
+		float angle = 40.0 * std::acos(glm::dot(oldPoint, newPoint) / (glm::length(newPoint) * glm::length(oldPoint)));
+		//std::cout << "Trying to turn " << angle << " degrees" << std::endl;
+		glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
+
+		cam_pos = glm::vec3(rotate * glm::vec4(cam_pos, 0.0));
+		cam_up = glm::vec3(rotate * glm::vec4(cam_up, 0.0));
+		V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+		/*
+		if (currLight == 0 && active!=NULL) {
+			active->orbit(angle, cross);
+		}else if (currLight == 1){
 			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-
-			cam_pos = glm::vec3(rotate * glm::vec4(cam_pos, 0.0));
-			V = glm::lookAt(cam_pos, cam_look_at, cam_up);
-			/*
-			if (currLight == 0 && active!=NULL) {
-				active->orbit(angle, cross);
-			}else if (currLight == 1){
-				glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-				dirLightDir = rotate * dirLightDir;
-				glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
-			} else if (currLight == 2){
-				glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-				ptLightPos = rotate * ptLightPos;
-				ptLightNorm = glm::normalize(ptLightPos);
-				glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
-			}
-			else if (currLight == 3) {
-				glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-				spotPos = rotate * spotPos;
-				//printf("Spotlight direction (%f, %f, %f)\n", -spotNorm.x, -spotNorm.y, -spotNorm.z);
-				spotNorm = glm::normalize(spotPos);
-				glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
-				glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
-			}*/
+			dirLightDir = rotate * dirLightDir;
+			glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
+		} else if (currLight == 2){
+			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
+			ptLightPos = rotate * ptLightPos;
+			ptLightNorm = glm::normalize(ptLightPos);
+			glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
 		}
+		else if (currLight == 3) {
+			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
+			spotPos = rotate * spotPos;
+			//printf("Spotlight direction (%f, %f, %f)\n", -spotNorm.x, -spotNorm.y, -spotNorm.z);
+			spotNorm = glm::normalize(spotPos);
+			glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
+			glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
+		}*/
+	}
 	
 	lastMouse.x = xpos;
 	lastMouse.y = ypos;
@@ -281,15 +476,48 @@ void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 }
 
 void Window::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-			mouseButton = GLFW_MOUSE_BUTTON_LEFT;
+		//handle mouse info tracking
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		mouseButton = GLFW_MOUSE_BUTTON_LEFT;
+	}
+	else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		mouseButton = GLFW_MOUSE_BUTTON_RIGHT;
+	}
+	else {
+		mouseButton = -1;
+		selectedPoint = NULL;
+	}
+
+	if (action == GLFW_PRESS) {
+		//>>>    Handle point selection
+		// Clear the color and depth buffers
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glUseProgram(curveShader);
+		int i;
+		for (i = 0; i < NUM_CURVES; i++) {
+			curves[i].selectionDraw(curveShader);
 		}
-		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-			mouseButton = GLFW_MOUSE_BUTTON_RIGHT;
+
+		unsigned char pix[4];
+		glReadPixels(lastMouse.x, height - lastMouse.y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
+		int selectedID = (unsigned int)pix[0];
+		
+
+		for (int i = 0; i < NUM_CURVES; i++) {
+			for (int k = 0; k < 4; k++) {
+				if (selectedID == curves[i].getControlPoint(k)->getId()) {
+					selectedPoint = curves[i].getControlPoint(k);
+					selectedCurve = i;
+					std::cout << "Selected point: " << selectedPoint->getId() << std::endl;
+				}
+			}
 		}
-		else {
-			mouseButton = -1;
-		}
+		// Swap buffers for debugging only!
+		// glfwSwapBuffers(window);
+		//clean up by clearing buffers again
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 }
 
 void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -340,18 +568,6 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 10.0);
 			active = bear;
 		}
-		else if (key == GLFW_KEY_0) {
-			currLight = 0;
-		}
-		else if (key == GLFW_KEY_1) {
-			currLight = 1;
-		}
-		else if (key == GLFW_KEY_2) {
-			currLight = 2;
-		}
-		else if (key == GLFW_KEY_3) {
-			currLight = 3;
-		}
 		else if (key == GLFW_KEY_E) {
 			if (mods & GLFW_MOD_SHIFT) {//capital E
 				spotExp *= 2.0;
@@ -395,6 +611,13 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 				active->translate(glm::vec3(0.0f, 0.0f, -1.0f));
 			}
 		}
+		else if (key == GLFW_KEY_M) {
+			if (moving) {
+				moving = false;
+			}else{
+				moving = true;
+			}
+		}
 		else if (key == GLFW_KEY_S && active != NULL) {
 			if (mods & GLFW_MOD_SHIFT) {
 				active->scale(1.0f);
@@ -404,10 +627,11 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			}
 		}
 		else if (key == GLFW_KEY_R) {
-			pointSize = 1.0;
-			spotExp = 1.0f;
-			spotWidth = 12.5f;
-			active->reset();
+			chair->translate(Curve::maxHeight - chair->getPos());
+			chair->update();
+			podT = 0.0;
+			currCurve = 0;
+			podV = 0.005f;
 		}
 		// Check if escape was pressed
 		if (key == GLFW_KEY_ESCAPE)
