@@ -8,8 +8,6 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#define NUM_CURVES 8
-
 const char* window_title = "GLFW Starter Project";
 const char* cylinder_filepath = "cylinder.obj";
 const char* pod_filepath = "pod.obj";
@@ -17,21 +15,15 @@ const char* bear_filepath = "bear.obj";
 OBJObject* bunny;
 OBJObject* dragon;
 OBJObject* bear;
+OBJObject* chair;
+OBJObject* brick;
 OBJObject* active = NULL;
-Group* root;
-Pod* chair;
+
 Skybox* skybox;
-Point* selectedPoint = NULL;
-int selectedCurve = -1;
 
 float pointSize = 1.0f;
 float spotExp = 1.0f;
 float spotWidth = 12.5f;
-double podV = 0.00005f;
-float podT = 0.0;
-int currCurve = 0;
-bool moving = false;
-bool direction = true;
 
 int mouseButton = -1; //current mouse state
 int frameCount = 0;
@@ -43,7 +35,7 @@ GLuint shaderProgram;
 GLuint curveShader;
 
 // Default camera parameters
-glm::vec3 cam_pos(0.0f, 0.0f, 20.0f);		// e  | Position of camera
+glm::vec3 cam_pos(0.0f, 0.0f, 0.01f);		// e  | Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d  | This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
 //Lighting parameters
@@ -57,16 +49,13 @@ int Window::height;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
 
-Curve curves[NUM_CURVES];
-
-
 
 void Window::initialize_objects()
 {
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
-	chair = new Pod(skybox->getCubemap());
-		// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
+
+	// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
 #ifdef _WIN32 // Windows (both 32 and 64 bit versions)
 	shaderProgram = LoadShaders("../shader.vert", "../shader.frag");
 #else // Not windows
@@ -84,47 +73,9 @@ void Window::initialize_objects()
 #else // Not windows
 	curveShader = LoadShaders("curve.vert", "curve.frag");
 #endif
-	glm::mat4 m1 = glm::mat4(
-		glm::vec4(4.0, 0.0, 4.0, 1.0),
-		glm::vec4(5.0, 0.0, 3.0, 1.0),
-		glm::vec4(5.0, 0.0, 2.0, 1.0),
-		glm::vec4(6.0, 0.0, 0.0, 1.0)
-	);
-	//Initialize curves
-	for (int i = 0; i < NUM_CURVES; i++) {
-		glm::mat4 mul = glm::rotate(glm::mat4(1.0), ((360.0f/(float)NUM_CURVES) * i) / 180.0f * glm::pi<float>(), glm::vec3(0.0, 1.0, 0.0));
-
-		curves[i] = Curve(mul * m1);
-	}
-	//Guarantee C0 continuity
-	for (int i = 0; i < NUM_CURVES; i++) {
-		if (i > 0) {
-			curves[i].setControlPoint(0, curves[i-1].getControlPoint(3));
-		}
-	}
-	curves[NUM_CURVES - 1].setControlPoint(3, curves[0].getControlPoint(0));
-	//make a peak
-	curves[0].getControlPoint(0)->p = curves[0].getControlPoint(0)->p + glm::vec3(0.0, 6.0, 0.0);
-	curves[NUM_CURVES - 1].getControlPoint(2)->p += glm::vec3(0.0, 6.0, 0.0);
-	curves[0].getControlPoint(1)->p = curves[0].getPoint(0) + (curves[0].getPoint(0) - curves[NUM_CURVES - 1].getPoint(2));
-	//establish C1 continuity
-	Window::continuity();
-	std::cout << "Max height: " << Curve::maxHeight.y << std::endl;
-	chair->translate(curves[currCurve].eval(podT));
-	chair->update();
+	brick = new OBJObject("lego.obj");
 }
 
-void Window::continuity() {
-	for (int i = 0, n=1; i < NUM_CURVES; i++,n++) {
-		if (n == NUM_CURVES)
-			n = 0;
-		float distance = glm::length(curves[i].getPoint(3) - curves[n].getPoint(1));
-		glm::vec3 initialHandle = glm::normalize(curves[i].getPoint(3) - curves[i].getPoint(2));
-		glm::vec3 newHandle = initialHandle * distance;
-		curves[n].setPoint(1, curves[i].getPoint(3) + newHandle);
-		curves[n].reevaluate();
-	}
-}
 
 void Window::clean_up()
 {
@@ -179,79 +130,14 @@ void Window::resize_callback(GLFWwindow* window, int width, int height)
 
 	if (height > 0)
 	{
-		P = glm::perspective(45.0f, (float)width / (float)height, 1.0f, 1000.0f);
+		P = glm::perspective(45.0f, (float)width / (float)height, 0.5f, 5000.0f);
 		V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 	}
 }
 
 void Window::idle_callback()
 {
-	if (moving) {
-		//move pod along
-		if (direction) {
-			podT += podV;
-		}
-		else {
-			podT -= podV;
-		}
-		if (podT > 1.0f) {
-			podT -= 1.0f;
-			if (currCurve == NUM_CURVES - 1) {
-				currCurve = 0;
-			}
-			else {
-				currCurve++;
-			}
-		}
-		else if (podT < 0.0f) {
-			podT += 1.0f;
-			if (currCurve == 0) {
-				currCurve = NUM_CURVES - 1;
-			}
-			else {
-				currCurve--;
-			}
-		}
-		glm::vec3 diff = curves[currCurve].eval(podT) - chair->getPos();
-		/* non working rotation code
-		glm::vec3 newZ = glm::normalize(diff);
-		glm::vec3 newX = glm::normalize(glm::cross(glm::vec3(0.0, 1.0, 0.0), newZ));
-		glm::vec3 newY = glm::normalize(glm::cross(newZ, newX));
-		glm::mat4 newCoord = glm::mat4();
-		newCoord[0] = glm::vec4(newX, 0.0);
-		newCoord[1] = glm::vec4(newY, 0.0);
-		newCoord[2] = glm::vec4(newZ, 0.0);
-		newCoord[3] = glm::vec4(0.0);
-		OBJObject::print_matrix(newCoord);
-		*/
-		//std::cout << "Pod delta: " << glm::to_string(diff) << std::endl;
-
-		float angleX = asin(fmod(diff.y / glm::length(diff), 1.0));
-		float angleY;
-		angleY = atan2(diff.x, diff.z);
-		//std::cout << "AngleX: " << angleX*(180/glm::pi<float>()) << std::endl;
-		
-		chair->translate(diff);
-		chair->update();
-		chair->setAngleX(angleX*(180/glm::pi<float>()));
-		//chair->update();
-		chair->setAngleY(angleY*(180/glm::pi<float>()));
-		chair->update();
-		//chair->setToWorld(chair->getToWorld() * newCoord);
-
-		//process velocity
-		float deltaH = diff.y;
-		if (deltaH > 0.0) {//slowing
-			podV -= sqrt(deltaH*0.0000000003);
-			if (podV < 0.000000001) {
-				direction = !direction;
-				podV = -podV;
-			}
-		}
-		else {//speeding
-			podV += sqrt(-deltaH*0.0000000003);
-		}
-	}
+	
 }
 
 void Window::display_callback(GLFWwindow* window)
@@ -264,35 +150,27 @@ void Window::display_callback(GLFWwindow* window)
 		glUseProgram(skyShader);
 		skybox->draw(skyShader);
 
-		//TODO draw curves
-		glUseProgram(curveShader);
-		int i;
-		for (i = 0; i < NUM_CURVES; i++) {
-			curves[i].draw(curveShader);
-		}
-
-
 		// Use the shader of programID
 		glUseProgram(shaderProgram);
 		//Initialize lighting
 		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 		glm::vec3 pointLightColors[] = {
-		glm::vec3(1.0f, 0.6f, 0.0f),
-		glm::vec3(1.0f, 0.0f, 0.0f),
-		glm::vec3(1.0f, 1.0, 0.0),
-		glm::vec3(0.2f, 0.2f, 1.0f)
+			glm::vec3(1.0f, 0.6f, 0.0f),
+			glm::vec3(1.0f, 0.0f, 0.0f),
+			glm::vec3(1.0f, 1.0, 0.0),
+			glm::vec3(0.2f, 0.2f, 1.0f)
 		};
 
 		// Set material
 		glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.0f, 0.0f, 0.0f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.5f, 0.25f, 0.5f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.45f, 0.55f, 0.45f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.8f, 0.8f, 0.2f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.8f, 0.8f, 0.2f);
 		glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 32.0);
 		
 		// Directional light
 		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
-		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.3f, 0.24f, 0.14f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 0.7f, 0.42f, 0.26f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.1f, 0.24f, 0.14f);
+		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 1.0f, 0.9f, 1.0f);
 		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
 
 		// Point light 1
@@ -320,18 +198,12 @@ void Window::display_callback(GLFWwindow* window)
 		//Assign uniforms
 		GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
 		glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
+		brick->draw(shaderProgram);
 
-		chair->draw(shaderProgram);
 		// Gets events, including input such as keyboard and mouse or window resizing
 		glfwPollEvents();
 		// Swap buffers
 		glfwSwapBuffers(window);
-	}
-	else if (frameCount > 0) {
-		frameCount--;
-	}
-	else {
-		frameCount = 0;
 	}
 }
 
@@ -349,74 +221,6 @@ glm::vec3 trackBallMap(double xpos, double ypos) {
 	return v;  // return the mouse location on the surface of the trackball
 }
 
-void Window::movePoint(glm::mat4 transform) {
-	selectedPoint->p = glm::vec3(transform * glm::vec4(selectedPoint->p, 1.0));
-	int index = -1;
-	for (int i = 0; i < 4; i++) {
-		if (curves[selectedCurve].getControlPoint(i) == selectedPoint) {
-			index = i;
-		}
-	}
-	if (index == 0) {
-		Point *next, *prev;
-		next = curves[selectedCurve].getControlPoint(1);
-		if (selectedCurve == 0) {
-			prev = curves[NUM_CURVES - 1].getControlPoint(2);
-		}
-		else {
-			prev = curves[selectedCurve - 1].getControlPoint(2);
-		}
-		next->p = glm::vec3(transform * glm::vec4(next->p, 1.0));
-		prev->p = glm::vec3(transform * glm::vec4(prev->p, 1.0));
-	}
-	else if (index == 1) {//approximating points
-		Point* other;
-		if (selectedCurve == 0) {
-			other = curves[NUM_CURVES-1].getControlPoint(2);
-		}else{
-			other = curves[selectedCurve -1].getControlPoint(2);
-		}
-		glm::vec3 trans = glm::vec3(glm::column(transform, 3));
-		glm::mat4 newTrans = glm::column(transform, 3, glm::vec4(-trans,0.0));
-		other->p = glm::vec3(newTrans *glm::vec4(other->p, 1.0));
-	}
-	else if (index == 2) {
-		Point* other;
-		if (selectedCurve == NUM_CURVES-1) {
-			other = curves[0].getControlPoint(1);
-		}
-		else {
-			other = curves[selectedCurve +1].getControlPoint(1);
-		}
-		glm::vec3 trans = glm::vec3(glm::column(transform, 3));
-		glm::mat4 newTrans = glm::column(transform, 3, glm::vec4(-trans, 0.0));
-		other->p = glm::vec3(newTrans *glm::vec4(other->p, 1.0));
-	}
-	else if (index == 3) {
-		Point *next, *prev;
-		prev = curves[selectedCurve].getControlPoint(2);
-		if (selectedCurve == NUM_CURVES -1) {
-			next = curves[0].getControlPoint(1);
-		}
-		else {
-			next = curves[selectedCurve + 1].getControlPoint(1);
-		}
-		next->p = glm::vec3(transform * glm::vec4(next->p, 1.0));
-		prev->p = glm::vec3(transform * glm::vec4(prev->p, 1.0));
-	}
-
-	int next = selectedCurve + 1;
-	int prev = selectedCurve - 1;
-	if (next == NUM_CURVES)
-		next = 0;
-	if (prev == -1)
-		prev = NUM_CURVES - 1;
-
-	curves[selectedCurve].reevaluate();
-	curves[prev].reevaluate();
-	curves[next].reevaluate();
-}
-
 void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 	double deltaX = 0.0;
 	double deltaY = 0.0;
@@ -426,16 +230,7 @@ void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 		deltaY = ypos - lastMouse.y;
 	}
 
-	//handle control point movement
-	if (selectedPoint) {
-		glm::vec3 cam_depth = cam_look_at - cam_pos;
-		glm::vec3 cam_x = glm::normalize(glm::cross(cam_depth, cam_up));
-		//std::cout << "Dx: " << deltaX << ", Dy: " << deltaY << std::endl;
-		glm::vec3 distance = cam_x * ((float)deltaX/110.0f) + cam_up*((float)-deltaY/110.0f);
-
-		movePoint(glm::translate(glm::mat4(), distance));		
-	}
-	else if (mouseButton == GLFW_MOUSE_BUTTON_LEFT) {
+	if (mouseButton == GLFW_MOUSE_BUTTON_LEFT) {
 		glm::vec3 oldPoint = trackBallMap(lastMouse.x, lastMouse.y);
 		glm::vec3 newPoint = trackBallMap(xpos, ypos);
 		glm::vec3 cross = glm::cross(oldPoint, newPoint);
@@ -447,6 +242,7 @@ void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 		cam_pos = glm::vec3(rotate * glm::vec4(cam_pos, 0.0));
 		cam_up = glm::vec3(rotate * glm::vec4(cam_up, 0.0));
 		V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+		std::cout << "new cam_pos: " << glm::to_string(cam_pos) << std::endl;
 		/*
 		if (currLight == 0 && active!=NULL) {
 			active->orbit(angle, cross);
@@ -485,9 +281,9 @@ void Window::mouse_button_callback(GLFWwindow* window, int button, int action, i
 	}
 	else {
 		mouseButton = -1;
-		selectedPoint = NULL;
 	}
 
+	/*
 	if (action == GLFW_PRESS) {
 		//>>>    Handle point selection
 		// Clear the color and depth buffers
@@ -518,6 +314,7 @@ void Window::mouse_button_callback(GLFWwindow* window, int button, int action, i
 		//clean up by clearing buffers again
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
+	*/
 }
 
 void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -611,13 +408,6 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 				active->translate(glm::vec3(0.0f, 0.0f, -1.0f));
 			}
 		}
-		else if (key == GLFW_KEY_M) {
-			if (moving) {
-				moving = false;
-			}else{
-				moving = true;
-			}
-		}
 		else if (key == GLFW_KEY_S && active != NULL) {
 			if (mods & GLFW_MOD_SHIFT) {
 				active->scale(1.0f);
@@ -625,13 +415,6 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			else {
 				active->scale(-1.0f);
 			}
-		}
-		else if (key == GLFW_KEY_R) {
-			chair->translate(Curve::maxHeight - chair->getPos());
-			chair->update();
-			podT = 0.0;
-			currCurve = 0;
-			podV = 0.005f;
 		}
 		// Check if escape was pressed
 		if (key == GLFW_KEY_ESCAPE)

@@ -54,6 +54,7 @@ uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotlight;
 uniform Material material;
 uniform samplerCube skybox;
+uniform vec4 brickColor;
 
 // Function prototypes
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
@@ -75,13 +76,13 @@ void main()
     // Phase 1: Directional lighting
     vec3 result = CalcDirLight(dirLight, norm, viewDir);
     // Phase 2: Point lights
-    for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);    
+    //for(int i = 0; i < NR_POINT_LIGHTS; i++)
+    //    result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);    
     // Phase 3: Spot light
-    result += CalcSpotLight(spotlight, norm, FragPos, viewDir);    
-    vec3 I = normalize(FragPos - viewPos);
-	vec3 R = reflect(I, normalize(Normal));
-    color = texture(skybox, R);
+    //result += CalcSpotLight(spotlight, norm, FragPos, viewDir);    
+    //vec3 I = normalize(FragPos - viewPos);
+	//vec3 R = reflect(I, normalize(Normal));
+    color = vec4(result, 0.0);
 }
 
 // Calculates the color when using a directional light.

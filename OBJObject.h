@@ -29,11 +29,10 @@ float angleX, angleY, orbitAngle = 0.0f;
 float scaleFactor = 1.0f;
 glm::vec3 max = glm::vec3(-INFINITY);
 glm::vec3 min = glm::vec3(INFINITY);
-GLuint box;	
 
 public:
 	void setupBuffers();
-	OBJObject(const char* filepath, GLuint environment);
+	OBJObject(const char* filepath);
 	OBJObject();
 
 	static GLuint shaderProgram;
