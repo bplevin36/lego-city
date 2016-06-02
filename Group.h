@@ -1,6 +1,6 @@
 #ifndef _GROUP_H_
 #define _GROUP_H_
-#include "C:\Users\Ben\Downloads\CSE167-Starter-Code-2-master\CSE167-Starter-Code-2-master\Node.h"
+#include "Node.h"
 #include <list>
 
 class Group :

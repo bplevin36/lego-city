@@ -12,11 +12,13 @@ const char* window_title = "GLFW Starter Project";
 const char* cylinder_filepath = "cylinder.obj";
 const char* pod_filepath = "pod.obj";
 const char* bear_filepath = "bear.obj";
+const char* lego_filepath = "lego-brick.obj";
 OBJObject* bunny;
 OBJObject* dragon;
 OBJObject* bear;
 OBJObject* chair;
-OBJObject* brick;
+Geode* brick;
+MatrixTransform *baseTransform;
 OBJObject* active = NULL;
 
 Skybox* skybox;
@@ -35,9 +37,10 @@ GLuint shaderProgram;
 GLuint curveShader;
 
 // Default camera parameters
-glm::vec3 cam_pos(0.0f, 0.0f, 0.01f);		// e  | Position of camera
+glm::vec3 cam_pos(0.0f, 0.0f, 10.0f);		// e  | Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d  | This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
+
 //Lighting parameters
 glm::vec4 dirLightDir(-0.2f, -1.0f, -0.3f, 0.0f);
 glm::vec4 ptLightPos(0.0, 10.0, 1.0, 0.0);
@@ -54,6 +57,10 @@ void Window::initialize_objects()
 {
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
+
+	baseTransform = new MatrixTransform();
+	brick = new Geode(new OBJObject(lego_filepath));
+	baseTransform->addChild(brick);
 
 	// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
 #ifdef _WIN32 // Windows (both 32 and 64 bit versions)
@@ -73,7 +80,6 @@ void Window::initialize_objects()
 #else // Not windows
 	curveShader = LoadShaders("curve.vert", "curve.frag");
 #endif
-	brick = new OBJObject("lego.obj");
 }
 
 
@@ -198,7 +204,7 @@ void Window::display_callback(GLFWwindow* window)
 		//Assign uniforms
 		GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
 		glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
-		brick->draw(shaderProgram);
+		baseTransform->draw(shaderProgram);
 
 		// Gets events, including input such as keyboard and mouse or window resizing
 		glfwPollEvents();
@@ -383,38 +389,6 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 				}
 			}
 			glPointSize(pointSize);
-		}
-		else if (key == GLFW_KEY_X) {
-			if (mods & GLFW_MOD_SHIFT) {
-				active->translate(glm::vec3(1.0f, 0.0f, 0.0f));
-			}
-			else {
-				active->translate(glm::vec3(-1.0f, 0.0f, 0.0f));
-			}
-		}
-		else if (key == GLFW_KEY_Y) {
-			if (mods & GLFW_MOD_SHIFT) {
-				active->translate(glm::vec3(0.0f, 1.0f, 0.0f));
-			}
-			else {
-				active->translate(glm::vec3(0.0f, -1.0f, 0.0f));
-			}
-		}
-		else if (key == GLFW_KEY_Z) {
-			if (mods & GLFW_MOD_SHIFT) {
-				active->translate(glm::vec3(0.0f, 0.0f, 1.0f));
-			}
-			else {
-				active->translate(glm::vec3(0.0f, 0.0f, -1.0f));
-			}
-		}
-		else if (key == GLFW_KEY_S && active != NULL) {
-			if (mods & GLFW_MOD_SHIFT) {
-				active->scale(1.0f);
-			}
-			else {
-				active->scale(-1.0f);
-			}
 		}
 		// Check if escape was pressed
 		if (key == GLFW_KEY_ESCAPE)

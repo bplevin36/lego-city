@@ -27,8 +27,6 @@ void OBJObject::setupBuffers(){
 		return;//skip setup if data not initialized already
 	}
 	toWorld = glm::mat4(1.0f);
-	this->angleX = 0.0f;
-	this->angleY = 0.0f;
 
 	// Create buffers/arrays
 	glGenVertexArrays(1, &VAO);
@@ -68,6 +66,7 @@ void OBJObject::setupBuffers(){
 	glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
 }
 
+/*
 glm::vec3 OBJObject::getNormal(int index) {
 	return normals[index];
 }
@@ -75,6 +74,7 @@ glm::vec3 OBJObject::getNormal(int index) {
 glm::mat4 OBJObject::getToWorld() {
 	return toWorld;
 }
+*/
 
 void OBJObject::parse(const char *filepath) 
 {
@@ -171,85 +171,11 @@ void OBJObject::parse(const char *filepath)
 		std::cout << "Max: " << glm::to_string(max) << std::endl;
 		std::cout << "Min: " << glm::to_string(min) << std::endl;
 	}
-	/* Old parsing code
-	float x, y, z;  // vertex coordinates
-	float r, g, b;  // vertex color
-	int v1, v2, v3; // face vertex indices
-	int c1, c2;    // characters read from file
-	char line[300]; //whole line
-	int count = 0;
-
-	std::ifstream fp (filepath, std::ifstream::in);  // make the file name configurable so you can load other files
-	
-	if (!fp.is_open()) { std::cerr << "error loading file" << std::endl; exit(-1); }  // just in case the file can't be found or is corrupt
-
-	std::cout << "Parsing: " << filepath << std::endl;
-	c1 = fp.get();
-	c2 = fp.get();
-
-	while (c1 != EOF) {
-
-		if ((c1 == 'v') && (c2 == ' '))
-		{
-			fp >> x >> y >> z;
-			if (fp.peek() != '\n') {
-				fp >> r >> g >> b;
-			}
-			else {
-				//fp.ignore(10, '\n');
-			}
-			if (x > max.x) {
-				max.x = x;
-			} else if(x < min.x){
-				min.x = x;
-			}
-			if (y > max.y) {
-				max.y = y;
-			}else if (y < min.y){
-				min.y = y;
-			}
-			if (z > max.z) {
-				max.z = z;
-			}else if(z < min.z){
-				min.z = z;
-			}
-			this->vertices.push_back(glm::vec3(x, y, z));
-
-		}
-		else if ((c1 == 'v') && (c2 == 'n')) { //parse a normal vector
-
-			fp >> x >> y >> z;
-			this->normals.push_back(glm::vec3(x, y, z));
-		}
-		else if ((c1 == 'f') && (c2 == ' ')) { //parse a face
-			int junk;
-			fp >> v1;
-			fp.ignore(2);
-			fp >> junk;
-
-			fp >> v2;
-			fp.ignore(2);
-			fp >> junk;
-
-			fp >> v3;
-			fp.ignore(2);
-			fp >> junk;
-
-			this->indices.push_back(v1-1);
-			this->indices.push_back(v2-1);
-			this->indices.push_back(v3-1);
-		}
-	    //consume rest of line
-		fp.ignore(300, '\n');
-
-		c1 = fp.get();
-		c2 = fp.get();
-	}
-	*/
 	//calculate center and recenter model
 	glm::vec3 center = min; //for bricks, center them at the minimum corner
-	if (DEBUG)
+	if (DEBUG) {
 		std::cout << "Old center: " << glm::to_string(center) << std::endl;
+	}
 	int i;
 	for (i = 0; i < vertices.size(); i++) {
 		vertices[i] = vertices[i] - center;
@@ -278,9 +204,9 @@ void OBJObject::parse(const char *filepath)
 			max.z = vertices[i].z;
 		}
 	}
-	float maxX = std::max(max.x, std::abs(min.x));
-	float maxY = std::max(max.y, std::abs(min.y));
-	float maxZ = std::max(max.z, std::abs(min.z));
+	float maxX = std::max(std::abs(max.x), std::abs(min.x));
+	float maxY = std::max(std::abs(max.y), std::abs(min.y));
+	float maxZ = std::max(std::abs(max.z), std::abs(min.z));
 	float maxDim = std::max(maxX, std::max(maxY, maxZ));
 	if (maxDim > 1) {
 		for (i = 0; i < vertices.size(); i++) {
@@ -303,6 +229,7 @@ void OBJObject::parse(const char *filepath)
 		std::cout << "Number of faces: " << (this->indices.size() + 1) / 3 << std::endl;
 		std::cout << "MaxZ: " << maxZ << std::endl;
 		std::cout << "AvgZ: " << sumZ/vertices.size() << std::endl;
+		std::cout << "New Center: " << glm::to_string(min) << std::endl;
 	}
 }
 
@@ -323,6 +250,12 @@ void OBJObject::draw(GLuint shaderProgram)
 
 }
 
+void OBJObject::setToWorld(glm::mat4 newWorld) {
+	toWorld = newWorld;
+}
+
+/*
+
 void OBJObject::update(glm::mat4 C) {
 	this->toWorld = C;
 }
@@ -335,10 +268,6 @@ void OBJObject::update()
 	this->toWorld = this->toWorld * this->rotateY;
 	this->toWorld = this->toWorld * this->scaling;
 	this->toWorld = this->orbiting * this->toWorld;
-}
-
-void OBJObject::setToWorld(glm::mat4 newWorld) {
-	toWorld = newWorld;
 }
 
 glm::vec3 OBJObject::getPos() {
@@ -398,3 +327,5 @@ void OBJObject::print_matrix(glm::mat4 matrix) {
 	}
 
 }
+
+*/

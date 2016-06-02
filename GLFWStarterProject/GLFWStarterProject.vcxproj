@@ -30,6 +30,7 @@
     <ClInclude Include="..\Node.h" />
     <ClInclude Include="..\OBJObject.h" />
     <ClInclude Include="..\Pod.h" />
+    <ClInclude Include="..\Point.h" />
     <ClInclude Include="..\shader.h" />
     <ClInclude Include="..\Skybox.h" />
     <ClInclude Include="..\Window.h" />
@@ -46,6 +47,7 @@
     <ClCompile Include="..\Node.cpp" />
     <ClCompile Include="..\OBJObject.cpp" />
     <ClCompile Include="..\Pod.cpp" />
+    <ClCompile Include="..\Point.cpp" />
     <ClCompile Include="..\shader.cpp" />
     <ClCompile Include="..\Skybox.cpp" />
     <ClCompile Include="..\Window.cpp" />
