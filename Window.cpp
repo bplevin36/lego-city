@@ -13,14 +13,11 @@
 const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
 const char* window_title = "GLFW Starter Project";
-const char* cylinder_filepath = "cylinder.obj";
-const char* pod_filepath = "pod.obj";
-const char* bear_filepath = "bear.obj";
+
 const char* lego_filepath = "lego1x1.obj";
 OBJObject *brickObj;
 Building *building;
 MatrixTransform *baseTransform;
-OBJObject* active = NULL;
 
 Skybox* skybox;
 
@@ -31,7 +28,6 @@ float spotExp = 1.0f;
 float spotWidth = 12.5f;
 
 int mouseButton = -1; //current mouse state
-int frameCount = 0;
 glm::vec2 lastMouse;
 bool lastInitialized = false;
 
@@ -155,70 +151,68 @@ void Window::idle_callback()
 
 void Window::display_callback(GLFWwindow* window)
 {
-	if (frameCount == 0) {
-		// Clear the color and depth buffers
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Clear the color and depth buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//Draw skybox
-		glUseProgram(skyShader);
-		skybox->draw(skyShader);
+	//Draw skybox
+	glUseProgram(skyShader);
+	skybox->draw(skyShader);
 
-		// Use the shader of programID
-		glUseProgram(shaderProgram);
-		//Initialize lighting
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-		glm::vec3 pointLightColors[] = {
-			glm::vec3(1.0f, 0.6f, 0.0f),
-			glm::vec3(1.0f, 0.0f, 0.0f),
-			glm::vec3(1.0f, 1.0, 0.0),
-			glm::vec3(0.2f, 0.2f, 1.0f)
-		};
+	// Use the shader of programID
+	glUseProgram(shaderProgram);
+	//Initialize lighting
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glm::vec3 pointLightColors[] = {
+		glm::vec3(1.0f, 0.6f, 0.0f),
+		glm::vec3(1.0f, 0.0f, 0.0f),
+		glm::vec3(1.0f, 1.0, 0.0),
+		glm::vec3(0.2f, 0.2f, 1.0f)
+	};
 
-		// Set material
-		glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.0f, 0.0f, 0.0f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.8f, 0.8f, 0.2f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.8f, 0.8f, 0.2f);
-		glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 32.0);
+	// Set material
+	glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.0f, 0.0f, 0.0f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.8f, 0.8f, 0.2f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.8f, 0.8f, 0.2f);
+	glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 32.0);
 		
-		// Directional light
-		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
-		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.1f, 0.24f, 0.14f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 1.0f, 0.9f, 1.0f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
+	// Directional light
+	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
+	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.1f, 0.24f, 0.14f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 1.0f, 0.9f, 1.0f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
 
-		// Point light 1
-		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
-		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].ambient"), pointLightColors[0].x * 0.1, pointLightColors[0].y * 0.1, pointLightColors[0].z * 0.1);
-		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].diffuse"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
-		glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].specular"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
-		glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].linear"), 0.09);
-		glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].quadratic"), 0.032);
+	// Point light 1
+	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
+	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].ambient"), pointLightColors[0].x * 0.1, pointLightColors[0].y * 0.1, pointLightColors[0].z * 0.1);
+	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].diffuse"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
+	glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].specular"), pointLightColors[0].x, pointLightColors[0].y, pointLightColors[0].z);
+	glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].constant"), 1.0f);
+	glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].linear"), 0.09);
+	glUniform1f(glGetUniformLocation(shaderProgram, "pointLights[0].quadratic"), 0.032);
 
-		// SpotLight
-		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
-		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
-		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.ambient"), 0.5f, 0.3f, 0.3f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.diffuse"), 0.8f, 0.8f, 0.0f);
-		glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.specular"), 0.8f, 0.8f, 0.0f);
-		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.linear"), 0.09);
-		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.quadratic"), 0.032);
-		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.exponent"), spotExp);
-		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.cutOff"), glm::cos(glm::radians(spotWidth)));
+	// SpotLight
+	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
+	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
+	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.ambient"), 0.5f, 0.3f, 0.3f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.diffuse"), 0.8f, 0.8f, 0.0f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.specular"), 0.8f, 0.8f, 0.0f);
+	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.constant"), 1.0f);
+	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.linear"), 0.09);
+	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.quadratic"), 0.032);
+	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.exponent"), spotExp);
+	glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.cutOff"), glm::cos(glm::radians(spotWidth)));
 
-		//Assign uniforms
-		GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
-		glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
+	//Assign uniforms
+	GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
+	glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
 
-		// Draw all bricks
-		baseTransform->draw(shaderProgram);
+	// Draw all bricks
+	baseTransform->draw(shaderProgram);
 
-		// Gets events, including input such as keyboard and mouse or window resizing
-		glfwPollEvents();
-		// Swap buffers
-		glfwSwapBuffers(window);
-	}
+	// Gets events, including input such as keyboard and mouse or window resizing
+	glfwPollEvents();
+	// Swap buffers
+	glfwSwapBuffers(window);
 }
 
 
