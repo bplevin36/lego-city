@@ -39,13 +39,18 @@ Building::Building(int length, int width, Group* group)
 	studs = std::vector<std::vector<int>>(length, std::vector<int>(width, 0));
 
 	// Create initial configuration (brick in center)
-	//glm::ivec2 startBrickDims(0.0), startBrickPos(0.0);
+	brick startBrick;
+	startBrick.pos = glm::ivec2(length / 2, width / 2);
+	startBrick.dims = glm::ivec2(1);
+	if (length % 2 == 0) { startBrick.dims.x = 2; }
+	if (width % 2 == 0) { startBrick.dims.y = 2; }
+	bricks.push_back(startBrick);
 
-	studs[0][0] = 1;
-	brick newBrick;
-	newBrick.pos = glm::vec2(0.0, 0.0);
-	newBrick.dims = glm::vec2(1.0,1.0);
-	bricks.push_back(newBrick);
+	for (int x = 0; x < startBrick.dims.x; x++) {
+		for (int z = 0; z < startBrick.dims.y; z++) {
+			studs[startBrick.pos.x + x][startBrick.pos.y + z] = 1;
+		}
+	}
 
 	printf("Applying rules!\n");
 	applyRules();
@@ -59,6 +64,8 @@ int Building::applyRandomRule()
 
 	// while list is not empty
 	while (!remainingRules->empty()) {
+		// Create an empty list of match positions
+		std::vector<glm::ivec2> matches;
 
 		// Choose random rule and pop it from the list
 		int index = rand() % (remainingRules->size());
@@ -68,37 +75,49 @@ int Building::applyRandomRule()
 
 		for (int x = 0; x < length; x++) {
 			for (int z = 0; z < width; z++) {
-				bool matches = true;
+
+				bool match = true; // Becomes false if the pattern is not matched
+
 				for (int xp = 0; xp < rule->patternLength; xp++) {
 					for (int zp = 0; zp < rule->patternWidth; zp++) {
+
 						// Bounds checking
 						if ((x + xp < length) && (z + zp < width)) {
 
 							if (studs[x + xp][z + zp] != rule->pattern[xp][zp]) {
-								matches = false;
+								match = false; // We found a mismatch with the pattern
 							}
 						}
 						else {
 							// No match if part of the pattern is out of bounds
-							matches = false;
+							match = false;
 						}
 					}
 				}
-				if (matches) {
+				if (match) {
 					printf("Match!\n");
-					// now replace the pattern with the output
-					for (int xp = 0; xp < rule->patternLength; xp++) {
-						for (int zp = 0; zp < rule->patternWidth; zp++) {
-							studs[x + xp][z + zp] = rule->output[xp][zp];
-						}
-					}
-					brick newBrick;
-					newBrick.pos = rule->brickPos + glm::ivec2(x, z);
-					newBrick.dims = rule->brickDims;
-					this->bricks.push_back(newBrick);
-					return 1;
+					// Add to our list of match positions
+					matches.push_back(glm::ivec2(x, z));
 				}
 			}
+		}
+
+		if (matches.size() > 0) {
+			// If we have some match positions, choose one randomly
+			index = rand() % (matches.size());
+			glm::ivec2 pos = matches[index];
+
+			// now replace the pattern with the output
+			for (int xp = 0; xp < rule->patternLength; xp++) {
+				for (int zp = 0; zp < rule->patternWidth; zp++) {
+					studs[pos.x + xp][pos.y + zp] = rule->output[xp][zp];
+				}
+			}
+			brick newBrick;
+			newBrick.pos = rule->brickPos + glm::ivec2(pos.x, pos.y);
+			newBrick.dims = rule->brickDims;
+			this->bricks.push_back(newBrick);
+			return 1;
 		}
 	}
 	
@@ -128,18 +147,26 @@ void Building::construct()
 
 void Building::reset()
 {
-	// Remove al bricks
+	// Remove all bricks
 	bricks.clear();
 	group->clearChildren();
 
 	// Initialize 2D vector with 0s in all places
 	studs = std::vector<std::vector<int>>(length, std::vector<int>(width, 0));
 
-	studs[0][0] = 1;
-	brick newBrick;
-	newBrick.pos = glm::vec2(0.0, 0.0);
-	newBrick.dims = glm::vec2(1.0, 1.0);
-	bricks.push_back(newBrick);
+	// Create initial configuration (brick in center)
+	brick startBrick;
+	startBrick.pos = glm::ivec2(length / 2, width / 2);
+	startBrick.dims = glm::ivec2(1);
+	if (length % 2 == 0) { startBrick.dims.x = 2; }
+	if (width % 2 == 0) { startBrick.dims.y = 2; }
+	bricks.push_back(startBrick);
+
+	for (int x = 0; x < startBrick.dims.x; x++) {
+		for (int z = 0; z < startBrick.dims.y; z++) {
+			studs[startBrick.pos.x + x][startBrick.pos.y + z] = 1;
+		}
+	}
 
 	printf("Applying rules!\n");
 	applyRules();

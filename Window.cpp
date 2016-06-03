@@ -61,7 +61,7 @@ void Window::initialize_objects()
 	brickObj = new OBJObject(lego_filepath);
 	baseTransform = new MatrixTransform();
 
-	building = new Building(3, 3, baseTransform);
+	building = new Building(6, 6, baseTransform);
 
 	// Always make sure to update root after adding bricks!
 	baseTransform->update(glm::mat4());
