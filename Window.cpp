@@ -9,6 +9,7 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#define MAP_SIZE 500
 const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
 const char* window_title = "GLFW Starter Project";
@@ -22,6 +23,8 @@ MatrixTransform *baseTransform;
 OBJObject* active = NULL;
 
 Skybox* skybox;
+
+std::vector<std::vector<int>> roadMap (MAP_SIZE, std::vector<int>(MAP_SIZE, 0));
 
 float pointSize = 1.0f;
 float spotExp = 1.0f;
