@@ -4,20 +4,20 @@
 #include "MatrixTransform.h"
 #include "Camera.h"
 #include "Curve.h"
+#include "Building.h"
 #include <cmath>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
+
+const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
 const char* window_title = "GLFW Starter Project";
 const char* cylinder_filepath = "cylinder.obj";
 const char* pod_filepath = "pod.obj";
 const char* bear_filepath = "bear.obj";
-const char* lego_filepath = "lego-brick.obj";
-OBJObject* bunny;
-OBJObject* dragon;
-OBJObject* bear;
-OBJObject* chair;
-Geode* brick;
+const char* lego_filepath = "lego1x1.obj";
+OBJObject *brickObj;
+Building *building;
 MatrixTransform *baseTransform;
 OBJObject* active = NULL;
 
@@ -58,9 +58,13 @@ void Window::initialize_objects()
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
 
+	brickObj = new OBJObject(lego_filepath);
 	baseTransform = new MatrixTransform();
-	brick = new Geode(new OBJObject(lego_filepath));
-	baseTransform->addChild(brick);
+
+	building = new Building(3, 3, baseTransform);
+
+	// Always make sure to update root after adding bricks!
+	baseTransform->update(glm::mat4());
 
 	// Load the shader program. Similar to the .obj objects, different platforms expect a different directory for files
 #ifdef _WIN32 // Windows (both 32 and 64 bit versions)
@@ -200,10 +204,11 @@ void Window::display_callback(GLFWwindow* window)
 		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.exponent"), spotExp);
 		glUniform1f(glGetUniformLocation(shaderProgram, "spotlight.cutOff"), glm::cos(glm::radians(spotWidth)));
 
-
 		//Assign uniforms
 		GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
 		glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
+
+		// Draw all bricks
 		baseTransform->draw(shaderProgram);
 
 		// Gets events, including input such as keyboard and mouse or window resizing
@@ -227,6 +232,27 @@ glm::vec3 trackBallMap(double xpos, double ypos) {
 	return v;  // return the mouse location on the surface of the trackball
 }
 
+// Studpos should be given as number of studs offset in each direction
+void Window::addStud(glm::ivec3 studpos, Group* group) {
+	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
+	studTransform->addChild(new Geode(brickObj));
+	group->addChild(studTransform);
+}
+
+// Brickpos should be given as number of studs offset in each direction
+// Brickdims should be given as dimensions in studs
+void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group) {
+	MatrixTransform *brickTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(brickpos) * STUD_DIMS));
+
+	for (int x = 0; x < brickdims.x; x++) {
+		for (int z = 0; z < brickdims.y; z++) {
+			addStud(glm::ivec3(x, 0, z), brickTransform);
+		}
+	}
+
+	group->addChild(brickTransform);
+}
+
 void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 	double deltaX = 0.0;
 	double deltaY = 0.0;
@@ -248,28 +274,6 @@ void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 		cam_pos = glm::vec3(rotate * glm::vec4(cam_pos, 0.0));
 		cam_up = glm::vec3(rotate * glm::vec4(cam_up, 0.0));
 		V = glm::lookAt(cam_pos, cam_look_at, cam_up);
-		std::cout << "new cam_pos: " << glm::to_string(cam_pos) << std::endl;
-		/*
-		if (currLight == 0 && active!=NULL) {
-			active->orbit(angle, cross);
-		}else if (currLight == 1){
-			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-			dirLightDir = rotate * dirLightDir;
-			glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
-		} else if (currLight == 2){
-			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-			ptLightPos = rotate * ptLightPos;
-			ptLightNorm = glm::normalize(ptLightPos);
-			glUniform3f(glGetUniformLocation(shaderProgram, "pointLights[0].position"), ptLightPos.x, ptLightPos.y, ptLightPos.z);
-		}
-		else if (currLight == 3) {
-			glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
-			spotPos = rotate * spotPos;
-			//printf("Spotlight direction (%f, %f, %f)\n", -spotNorm.x, -spotNorm.y, -spotNorm.z);
-			spotNorm = glm::normalize(spotPos);
-			glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.position"), spotPos.x, spotPos.y, spotPos.z);
-			glUniform3f(glGetUniformLocation(shaderProgram, "spotlight.direction"), -spotNorm.x, -spotNorm.y, -spotNorm.z);
-		}*/
 	}
 	
 	lastMouse.x = xpos;
@@ -288,39 +292,6 @@ void Window::mouse_button_callback(GLFWwindow* window, int button, int action, i
 	else {
 		mouseButton = -1;
 	}
-
-	/*
-	if (action == GLFW_PRESS) {
-		//>>>    Handle point selection
-		// Clear the color and depth buffers
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glUseProgram(curveShader);
-		int i;
-		for (i = 0; i < NUM_CURVES; i++) {
-			curves[i].selectionDraw(curveShader);
-		}
-
-		unsigned char pix[4];
-		glReadPixels(lastMouse.x, height - lastMouse.y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pix);
-		int selectedID = (unsigned int)pix[0];
-		
-
-		for (int i = 0; i < NUM_CURVES; i++) {
-			for (int k = 0; k < 4; k++) {
-				if (selectedID == curves[i].getControlPoint(k)->getId()) {
-					selectedPoint = curves[i].getControlPoint(k);
-					selectedCurve = i;
-					std::cout << "Selected point: " << selectedPoint->getId() << std::endl;
-				}
-			}
-		}
-		// Swap buffers for debugging only!
-		// glfwSwapBuffers(window);
-		//clean up by clearing buffers again
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}
-	*/
 }
 
 void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
@@ -330,16 +301,6 @@ void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	toOrigin = (toOrigin * (GLfloat)yoffset) * 0.1f;
 	cam_pos = glm::vec3(glm::translate(glm::mat4(1.0f), toOrigin) * glm::vec4(cam_pos, 1.0));
 	V = glm::lookAt(cam_pos, cam_look_at, cam_up);
-	/*
-	if (active != NULL && currLight == 0) {
-		active->translate(d);
-	}
-	else if (currLight == 2) {
-		ptLightPos = ptLightPos - (ptLightNorm * float(yoffset));
-	}
-	else if (currLight == 3) {
-		spotPos = spotPos - (spotNorm * float(yoffset));
-	}*/
 }
 
 void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -347,51 +308,13 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 	// Check for a key press
 	if (action == GLFW_PRESS)
 	{
-		if (key == GLFW_KEY_F1) {
-			//material for silver bunny
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.19225, 0.019225, 0.019225);
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.50754, 0.050754, 0.050754);
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.208273, 0.0508273, 0.308273);
-			glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 5.0);
-			active = bunny;
+		if (key == GLFW_KEY_R) {
+			building->reset();
+			baseTransform->update(glm::mat4());
 		}
-		else if (key == GLFW_KEY_F2) {
-			//material properties for golden dragon
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.24725, 0.1995, 0.0745);
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.75164, 0.60648, 0.22648);
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.628281, 0.555802, 0.366065);
-			glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 51.2);
-			active = dragon;
-		}
-		else  if (key == GLFW_KEY_F3) {
-			//material for rubber bear
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.05, 0.05, 0.05);
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.05, 0.05, 0.05);
-			glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.7, 0.7, 0.7);
-			glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 10.0);
-			active = bear;
-		}
-		else if (key == GLFW_KEY_E) {
-			if (mods & GLFW_MOD_SHIFT) {//capital E
-				spotExp *= 2.0;
-			}
-			else {
-				spotExp /= 2.0;
-			}
-		}
-		else if (key == GLFW_KEY_P) {
-			if (mods & GLFW_MOD_SHIFT) {//capital P
-				++pointSize;
-			}
-			else {//lowercase
-				if (pointSize > 1.0f) {
-					--pointSize;
-				}
-			}
-			glPointSize(pointSize);
-		}
+
 		// Check if escape was pressed
-		if (key == GLFW_KEY_ESCAPE)
+		else if (key == GLFW_KEY_ESCAPE)
 		{
 			// Close the window. This causes the program to also terminate.
 			glfwSetWindowShouldClose(window, GL_TRUE);

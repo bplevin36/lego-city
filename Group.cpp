@@ -21,6 +21,11 @@ void Group::removeChild(Node* removed)
 	children.remove(removed);
 }
 
+void Group::clearChildren()
+{
+	children.clear();
+}
+
 void Group::draw(GLuint shaderProgram)
 {
 	for (std::list<Node*>::iterator it = children.begin(); it != children.end(); ++it) {

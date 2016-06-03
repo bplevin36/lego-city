@@ -10,6 +10,7 @@
 #include "OBJObject.h"
 #include "Group.h"
 
+
 class Window
 {
 public:
@@ -29,6 +30,8 @@ public:
 	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	static void continuity();
 	static void movePoint(glm::mat4);
+	static void addStud(glm::ivec3, Group*);
+	static void addBrick(glm::ivec3, glm::ivec2, Group*);
 };
 
 #endif

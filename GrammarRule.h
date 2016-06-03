@@ -7,18 +7,18 @@ class GrammarRule
 {
 public:
 	GrammarRule(std::vector<std::vector<int>> pattern, std::vector<std::vector<int>> output,
-		int patternLength, int patternWidth, int brickType, glm::vec2 brickPos)
+		int patternLength, int patternWidth, glm::ivec2 brickPos, glm::ivec2 brickDims)
 	{
 		this->pattern = pattern;
 		this->output = output;
 		this->patternLength = patternLength;
 		this->patternWidth = patternWidth;
-		this->brickType = brickType;
+		this->brickDims = brickDims;
 		this->brickPos = brickPos;
 	}
 
 	std::vector<std::vector<int>> pattern, output;
-	int patternLength, patternWidth, brickType;
-	glm::vec2 brickPos;
+	int patternLength, patternWidth;
+	glm::ivec2 brickPos, brickDims;
 };
 #endif

@@ -14,8 +14,8 @@ std::vector<std::vector<int>>({
 }),
 2,						// patternLength
 1,						// patternWidth
-0,						// brickType
-glm::vec2(1.0, 0.0));	// brickPos
+glm::ivec2(1, 0),		// brickPos
+glm::ivec2(1, 1));		// brickDims
 
 
 
@@ -38,11 +38,13 @@ Building::Building(int length, int width, Group* group)
 	// Initialize 2D vector with 0s in all places
 	studs = std::vector<std::vector<int>>(length, std::vector<int>(width, 0));
 
-	// Create initial configuration
+	// Create initial configuration (brick in center)
+	//glm::ivec2 startBrickDims(0.0), startBrickPos(0.0);
+
 	studs[0][0] = 1;
 	brick newBrick;
 	newBrick.pos = glm::vec2(0.0, 0.0);
-	newBrick.type = 0;
+	newBrick.dims = glm::vec2(1.0,1.0);
 	bricks.push_back(newBrick);
 
 	printf("Applying rules!\n");
@@ -72,11 +74,6 @@ int Building::applyRandomRule()
 						// Bounds checking
 						if ((x + xp < length) && (z + zp < width)) {
 
-							if (x == 0 && z == 0) {
-								printf("x = %d, z = %d, xp = %d, zp = %d\n", x, z, xp, zp);
-								printf("studs[x + xp][z + zp] = %d, pattern[xp][zp] = %d\n", studs[x + xp][z + zp], rule->pattern[xp][zp]);
-							}
-
 							if (studs[x + xp][z + zp] != rule->pattern[xp][zp]) {
 								matches = false;
 							}
@@ -96,8 +93,8 @@ int Building::applyRandomRule()
 						}
 					}
 					brick newBrick;
-					newBrick.pos = rule->brickPos + glm::vec2(x, z);
-					newBrick.type = rule->brickType;
+					newBrick.pos = rule->brickPos + glm::ivec2(x, z);
+					newBrick.dims = rule->brickDims;
 					this->bricks.push_back(newBrick);
 					return 1;
 				}
@@ -125,6 +122,26 @@ void Building::applyRules()
 void Building::construct()
 {
 	for (int i = 0; i < bricks.size(); i++) {
-		Window::addBrick(glm::vec3(bricks[i].pos.x, 0.0, bricks[i].pos.y), this->group, bricks[i].type);
+		Window::addBrick(glm::vec3(bricks[i].pos.x, 0.0, bricks[i].pos.y), bricks[i].dims, this->group);
 	}
+}
+
+void Building::reset()
+{
+	// Remove al bricks
+	bricks.clear();
+	group->clearChildren();
+
+	// Initialize 2D vector with 0s in all places
+	studs = std::vector<std::vector<int>>(length, std::vector<int>(width, 0));
+
+	studs[0][0] = 1;
+	brick newBrick;
+	newBrick.pos = glm::vec2(0.0, 0.0);
+	newBrick.dims = glm::vec2(1.0, 1.0);
+	bricks.push_back(newBrick);
+
+	printf("Applying rules!\n");
+	applyRules();
+	construct();
 }

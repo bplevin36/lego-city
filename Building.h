@@ -7,14 +7,15 @@
 
 struct brick
 {
-	glm::vec2 pos;
-	int type;
+	glm::ivec2 pos;
+	glm::ivec2 dims;
 };
 
 class Building
 {
 public:
 	Building(int length, int width, Group*);
+	void reset();
 
 	Group *group;
 

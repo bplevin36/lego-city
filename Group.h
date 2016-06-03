@@ -11,6 +11,7 @@ public:
 	~Group();
 	void addChild(Node*);
 	void removeChild(Node*);
+	void clearChildren();
 	virtual void draw(GLuint);
 	virtual void update(glm::mat4);
 protected:
