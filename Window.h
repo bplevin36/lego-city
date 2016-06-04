@@ -28,9 +28,9 @@ public:
 	static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos);
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-	static void continuity();
-	static void movePoint(glm::mat4);
+	static void layout_roads();
 	static void addStud(glm::ivec3, Group*);
+	static void addStud(glm::ivec3, Group*, int);
 	static void addBrick(glm::ivec3, glm::ivec2, Group*);
 };
 

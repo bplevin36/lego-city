@@ -6,10 +6,14 @@
 #include "Curve.h"
 #include "Building.h"
 #include <cmath>
+#include <algorithm>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#define MAP_SIZE 500
+#define MAP_SIZE 50
+#define ROAD_STUD 1
+#define MAJOR_ROAD_WIDTH 8
+
 const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
 const char* window_title = "GLFW Starter Project";
@@ -21,9 +25,9 @@ MatrixTransform *baseTransform;
 
 Skybox* skybox;
 
-std::vector<std::vector<int>> roadMap (MAP_SIZE, std::vector<int>(MAP_SIZE, 0));
+std::vector<std::vector<int>> roadMap(MAP_SIZE, std::vector<int>(MAP_SIZE, 0));
+Group* roads;
 
-float pointSize = 1.0f;
 float spotExp = 1.0f;
 float spotWidth = 12.5f;
 
@@ -51,17 +55,73 @@ int Window::height;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
 
+void road_between(glm::ivec2 p1, glm::ivec2 p2, int half_width, std::vector<std::vector<int>>* map) {
+	if (p1.x == p2.x) {//vertical road
+		for (int y = std::min(p1.y, p2.y); y < std::max(p1.y, p2.y); y++) {
+			for (int x = p1.x - half_width; x < p1.x + half_width; x++) {
+				(*map)[x][y] = ROAD_STUD;
+			}
+		}
+	} else if (p1.y == p2.y){//horizontal road
+		for (int x = std::min(p1.x, p2.x); x < std::max(p1.x, p2.x); x++) {
+			for (int y = p1.y - half_width; y < p1.y + half_width; y++) {
+				(*map)[x][y] = ROAD_STUD;
+			}
+		}
+	}
+	//no road laid if points are not aligned
+}
+
+void Window::layout_roads() {
+	//draw corners for debug
+	roadMap[0][0] = ROAD_STUD;
+	roadMap[0][MAP_SIZE - 1] = ROAD_STUD;
+	roadMap[MAP_SIZE - 1][0] = ROAD_STUD;
+	roadMap[MAP_SIZE - 1][MAP_SIZE - 1] = ROAD_STUD;
+	bool vertical = false;
+	glm::ivec2 highwayStart, highwayEnd;
+	//lay major highway east west
+	if (!vertical) {
+		highwayStart = glm::ivec2(0, MAP_SIZE / 2);
+		highwayEnd = glm::ivec2(MAP_SIZE - 1, MAP_SIZE / 2);
+	} else {
+		highwayStart = glm::ivec2(MAP_SIZE / 2, 0);
+		highwayEnd = glm::ivec2(MAP_SIZE/2, MAP_SIZE - 1);
+	}
+	road_between(highwayStart, highwayEnd, MAJOR_ROAD_WIDTH / 2, &roadMap);
+	//loop along major road
+	for (glm::ivec2 cell = highwayStart; std::max(cell.x,cell.y) < MAP_SIZE; vertical ? cell.y++ : cell.x++) {
+		glm::ivec2 right, left;
+		if (vertical) {
+			right = cell + glm::ivec2(-MAJOR_ROAD_WIDTH/2, 0);
+			left = cell + glm::ivec2(MAJOR_ROAD_WIDTH/2, 0);
+		} else {
+			right = cell + glm::ivec2(0, MAJOR_ROAD_WIDTH/2);
+			left = cell + glm::ivec2(0, -MAJOR_ROAD_WIDTH/2);
+		}
+	}
+	// layout road map in road group
+	for (int x = 0; x < MAP_SIZE; x++) {
+		for (int y = 0; y < MAP_SIZE; y++) {
+			if (roadMap[x][y] == ROAD_STUD){
+				Window::addStud(glm::ivec3(x, -1, y), roads);
+			}
+		}
+	}
+}
 
 void Window::initialize_objects()
 {
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
-
 	brickObj = new OBJObject(lego_filepath);
+
+	roads = new Group();
+	layout_roads();
+	roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
+
 	baseTransform = new MatrixTransform();
-
 	building = new Building(6, 6, baseTransform);
-
 	// Always make sure to update root after adding bricks!
 	baseTransform->update(glm::mat4());
 
@@ -71,13 +131,11 @@ void Window::initialize_objects()
 #else // Not windows
 	shaderProgram = LoadShaders("shader.vert", "shader.frag");
 #endif
-
 #ifdef _WIN32 // Windows (both 32 and 64 bit versions)
 	skyShader = LoadShaders("../skybox.vert", "../skybox.frag");
 #else // Not windows
 	skyShader = LoadShaders("skybox.vert", "skybox.frag");
 #endif
-
 #ifdef _WIN32 // Windows (both 32 and 64 bit versions)
 	curveShader = LoadShaders("../curve.vert", "../curve.frag");
 #else // Not windows
@@ -206,6 +264,9 @@ void Window::display_callback(GLFWwindow* window)
 	GLuint view_pos = glGetUniformLocation(shaderProgram, "viewPos");
 	glUniform3f(view_pos, cam_pos.x, cam_pos.y, cam_pos.z);
 
+	//Draw roads
+	roads->draw(shaderProgram);
+
 	// Draw all bricks
 	baseTransform->draw(shaderProgram);
 
@@ -236,6 +297,11 @@ void Window::addStud(glm::ivec3 studpos, Group* group) {
 	group->addChild(studTransform);
 }
 
+// Overloaded version to allow brick color specification
+void Window::addStud(glm::ivec3 studpos, Group* group, int color_index) {
+
+}
+
 // Brickpos should be given as number of studs offset in each direction
 // Brickdims should be given as dimensions in studs
 void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group) {
@@ -246,7 +312,6 @@ void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group) {
 			addStud(glm::ivec3(x, 0, z), brickTransform);
 		}
 	}
-
 	group->addChild(brickTransform);
 }
 
