@@ -23,12 +23,19 @@ glm::ivec2(1, 1));		// brickDims
 std::vector<GrammarRule*> Building::rule_list = std::vector<GrammarRule*>({ r1 });
 const int Building::NUM_RULES = rule_list.size();
 
-Building::Building(int length, int width, Group* group)
+Building::Building(int length, int width, int height, Group* group)
 {
 	// x dimension
 	this->length = length;
+	if (this->length < 0) { this->length = 1;  }
+
 	// z dimension
 	this->width = width;
+	if (this->width < 0) { this->width = 1; }
+
+	// y dimension
+	this->height = height;
+	if (this->height < 0) { this->height = 1; }
 
 	this->group = group;
 
@@ -140,8 +147,11 @@ void Building::applyRules()
 
 void Building::construct()
 {
+	// Add same brick pattern to every floor
 	for (int i = 0; i < bricks.size(); i++) {
-		Window::addBrick(glm::vec3(bricks[i].pos.x, 0.0, bricks[i].pos.y), bricks[i].dims, this->group);
+		for (int j = 0; j < this->height; j++) {
+			Window::addBrick(glm::vec3(bricks[i].pos.x, j, bricks[i].pos.y), bricks[i].dims, this->group);
+		}
 	}
 }
 

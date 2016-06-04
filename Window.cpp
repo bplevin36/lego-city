@@ -127,7 +127,7 @@ void Window::initialize_objects()
 	roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
 	baseTransform = new MatrixTransform();
-	building = new Building(6, 6, baseTransform);
+	building = new Building(6, 6, 3, baseTransform);
 	// Always make sure to update root after adding bricks!
 	baseTransform->update(glm::mat4());
 

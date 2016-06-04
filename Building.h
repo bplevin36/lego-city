@@ -14,7 +14,7 @@ struct brick
 class Building
 {
 public:
-	Building(int length, int width, Group*);
+	Building(int length, int width, int height, Group*);
 	void reset();
 
 	Group *group;
@@ -25,7 +25,7 @@ public:
 private:
 	static const int MIN_RULES_APPLIED = 1;
 	static const int MAX_RULES_APPLIED = 2;
-	int width, length;
+	int width, length, height;
 
 	/* In this 2d vector, 
 	 *	0 represents no stud in that position
