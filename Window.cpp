@@ -5,8 +5,11 @@
 #include "Camera.h"
 #include "Curve.h"
 #include "Building.h"
+#include "BrickGeode.h"
 #include <cmath>
 #include <algorithm>
+#include <time.h>
+#include <stdlib.h>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -112,6 +115,9 @@ void Window::layout_roads() {
 
 void Window::initialize_objects()
 {
+	// Initialize rng
+	srand(time(NULL));
+
 	std::vector<const GLchar*> faces = { "right.ppm","left.ppm","top.ppm","base.ppm","front.ppm","back.ppm" };
 	skybox = new Skybox(faces);
 	brickObj = new OBJObject(lego_filepath);
@@ -226,12 +232,6 @@ void Window::display_callback(GLFWwindow* window)
 		glm::vec3(1.0f, 1.0, 0.0),
 		glm::vec3(0.2f, 0.2f, 1.0f)
 	};
-
-	// Set material
-	glUniform3f(glGetUniformLocation(shaderProgram, "material.ambient"), 0.0f, 0.0f, 0.0f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "material.diffuse"), 0.8f, 0.8f, 0.2f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), 0.8f, 0.8f, 0.2f);
-	glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), 32.0);
 		
 	// Directional light
 	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
@@ -293,13 +293,15 @@ glm::vec3 trackBallMap(double xpos, double ypos) {
 // Studpos should be given as number of studs offset in each direction
 void Window::addStud(glm::ivec3 studpos, Group* group) {
 	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
-	studTransform->addChild(new Geode(brickObj));
+	studTransform->addChild(new BrickGeode(brickObj, 0));
 	group->addChild(studTransform);
 }
 
 // Overloaded version to allow brick color specification
-void Window::addStud(glm::ivec3 studpos, Group* group, int color_index) {
-
+void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex) {
+	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
+	studTransform->addChild(new BrickGeode(brickObj, colorindex));
+	group->addChild(studTransform);
 }
 
 // Brickpos should be given as number of studs offset in each direction
@@ -307,9 +309,12 @@ void Window::addStud(glm::ivec3 studpos, Group* group, int color_index) {
 void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group) {
 	MatrixTransform *brickTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(brickpos) * STUD_DIMS));
 
+	// Choose a random brick color
+	int color = rand() % BrickGeode::NUM_MATS;
+
 	for (int x = 0; x < brickdims.x; x++) {
 		for (int z = 0; z < brickdims.y; z++) {
-			addStud(glm::ivec3(x, 0, z), brickTransform);
+			addStud(glm::ivec3(x, 0, z), brickTransform, color);
 		}
 	}
 	group->addChild(brickTransform);

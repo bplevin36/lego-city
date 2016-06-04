@@ -11,7 +11,7 @@ public:
 	void draw(GLuint shaderProgram);
 	void update(glm::mat4 C);
 
-private:
+protected:
 	OBJObject *obj;
 	glm::mat4 toWorld = glm::mat4();
 };
