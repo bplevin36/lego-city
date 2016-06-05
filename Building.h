@@ -23,13 +23,13 @@ public:
 	static const int NUM_RULES;
 
 private:
-	static const int MIN_RULES_APPLIED = 1;
-	static const int MAX_RULES_APPLIED = 2;
-	int width, length, height;
+	static const int MIN_RULES_APPLIED = 5;
+	static const int MAX_RULES_APPLIED = 8;
+	int width, length, height, min_rules_applied, max_rules_applied;
 
 	/* In this 2d vector, 
-	 *	0 represents no stud in that position
-	 *	1 represents a stud in that position
+	 *	0 represents open space
+	 *  1 represents a space occupied by a stud
 	 */
 	std::vector<std::vector<int>> studs;
 
@@ -41,7 +41,11 @@ private:
 	void construct();
 
 	// Grammar Rules
-	static GrammarRule *r1;
+	static GrammarRule* r_1x1_adjacent[4];
+	static GrammarRule* r_1x1_space[4];
+	static GrammarRule* r_1x2_adjacent[4];
+	static GrammarRule* r_1x3_adjacent[4];
+	static GrammarRule* r_1x4_adjacent[4];
 };
 
 #endif

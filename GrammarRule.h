@@ -6,16 +6,23 @@
 class GrammarRule
 {
 public:
-	GrammarRule(std::vector<std::vector<int>> pattern, std::vector<std::vector<int>> output,
-		int patternLength, int patternWidth, glm::ivec2 brickPos, glm::ivec2 brickDims)
+	GrammarRule(std::vector<std::vector<int>> pattern, glm::ivec2 brickPos, glm::ivec2 brickDims)
 	{
 		this->pattern = pattern;
-		this->output = output;
-		this->patternLength = patternLength;
-		this->patternWidth = patternWidth;
+
+		this->patternLength = this->pattern.size();
+		this->patternWidth = this->pattern[0].size();
 		this->brickDims = brickDims;
 		this->brickPos = brickPos;
-	}
+
+		this->output = std::vector<std::vector<int>>(this->pattern);
+		
+		for (int x = brickPos.x; x < brickPos.x + brickDims.x; x++) {
+			for (int z = brickPos.y; z < brickPos.y + brickDims.y; z++) {
+				this->output[x][z] = 1;
+			}
+		}
+	};
 
 	std::vector<std::vector<int>> pattern, output;
 	int patternLength, patternWidth;

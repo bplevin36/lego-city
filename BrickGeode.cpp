@@ -23,7 +23,13 @@ std::vector<material> BrickGeode::materials = std::vector<material>({
 	material(	glm::vec3(0.0, 0.0, 0.0),
 				glm::vec3(0.0, 0.0, 0.5),
 				glm::vec3(0.6, 0.6, 0.7),
-				32.0)
+				32.0),
+
+	// White Plastic
+	material(glm::vec3(0.0, 0.0, 0.0),
+		glm::vec3(0.55, 0.55, 0.55),
+		glm::vec3(0.7, 0.7, 0.7),
+		32.0)
 });
 
 int BrickGeode::NUM_MATS = materials.size();
