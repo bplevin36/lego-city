@@ -305,6 +305,13 @@ void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex) {
 	group->addChild(studTransform);
 }
 
+// Overloaded version to allow brick color specification and animation delay specification
+void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex, int framedelay) {
+	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
+	studTransform->addChild(new BrickGeode(brickObj, colorindex, framedelay));
+	group->addChild(studTransform);
+}
+
 // Brickpos should be given as number of studs offset in each direction
 // Brickdims should be given as dimensions in studs
 void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group) {
@@ -316,6 +323,21 @@ void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group) {
 	for (int x = 0; x < brickdims.x; x++) {
 		for (int z = 0; z < brickdims.y; z++) {
 			addStud(glm::ivec3(x, 0, z), brickTransform, color);
+		}
+	}
+	group->addChild(brickTransform);
+}
+
+// Overloaded version to allow animation delay specification
+void Window::addBrick(glm::ivec3 brickpos, glm::ivec2 brickdims, Group* group, int framedelay) {
+	MatrixTransform *brickTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(brickpos) * STUD_DIMS));
+
+	// Choose a random brick color
+	int color = rand() % BrickGeode::NUM_MATS;
+
+	for (int x = 0; x < brickdims.x; x++) {
+		for (int z = 0; z < brickdims.y; z++) {
+			addStud(glm::ivec3(x, 0, z), brickTransform, color, framedelay);
 		}
 	}
 	group->addChild(brickTransform);

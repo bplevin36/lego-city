@@ -31,7 +31,9 @@ public:
 	static void layout_roads();
 	static void addStud(glm::ivec3, Group*);
 	static void addStud(glm::ivec3, Group*, int);
+	static void addStud(glm::ivec3, Group*, int, int);
 	static void addBrick(glm::ivec3, glm::ivec2, Group*);
+	static void addBrick(glm::ivec3, glm::ivec2, Group*, int);
 };
 
 #endif

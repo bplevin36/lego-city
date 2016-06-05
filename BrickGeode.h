@@ -25,12 +25,18 @@ class BrickGeode : public Geode
 {
 public:
 	BrickGeode(OBJObject *obj, int colorindex);
+	BrickGeode(OBJObject *obj, int colorindex, int framedelay);
 	void draw(GLuint shaderProgram);
 
 	static std::vector<material> materials;
 	static int NUM_MATS;
 
 private:
+	int framecount = BrickGeode::FRAME_MAX;
+	int framedelay = 0;
 	material mat;
+
+	static const int FRAME_MAX = 100;
+	static const float ANIM_OFFSET;
 };
 

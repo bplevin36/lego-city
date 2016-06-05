@@ -1,5 +1,7 @@
 #include "BrickGeode.h"
 
+const float BrickGeode::ANIM_OFFSET = 0.1f;
+
 std::vector<material> BrickGeode::materials = std::vector<material>({
 	// Red plastic
 	material(	glm::vec3(0.0, 0.0, 0.0),
@@ -40,6 +42,14 @@ BrickGeode::BrickGeode(OBJObject *obj, int colorindex)
 	this->mat = BrickGeode::materials[colorindex];
 }
 
+BrickGeode::BrickGeode(OBJObject *obj, int colorindex, int framedelay)
+{
+	this->obj = obj;
+	this->mat = BrickGeode::materials[colorindex];
+	this->framedelay = framedelay;
+}
+
+
 void BrickGeode::draw(GLuint shaderProgram)
 {
 	// Set material of brick
@@ -48,6 +58,16 @@ void BrickGeode::draw(GLuint shaderProgram)
 	glUniform3f(glGetUniformLocation(shaderProgram, "material.specular"), mat.specular.x, mat.specular.y, mat.specular.z);
 	glUniform1f(glGetUniformLocation(shaderProgram, "material.shininess"), mat.shininess);
 
-	obj->setToWorld(this->toWorld);
-	obj->draw(shaderProgram);
+	if (framedelay <= 0) {
+		glm::mat4 animMat = this->toWorld;
+
+		if (framecount > 0) {
+			animMat = glm::translate(animMat, glm::vec3(0.0, framecount * BrickGeode::ANIM_OFFSET, 0.0));
+			framecount--;
+		}
+
+		obj->setToWorld(animMat);
+		obj->draw(shaderProgram);
+	}
+	else { framedelay--; }
 }
