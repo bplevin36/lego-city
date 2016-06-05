@@ -1,8 +1,12 @@
-#pragma once
+#ifndef _BRICKGEODE_H_
+#define _BRICKGEODE_H_
+
 #include "Geode.h"
 #include <stdlib.h>
 #include <time.h>
 #include <vector>
+#include <deque>
+#include <SFML/Audio.hpp>
 
 struct material {
 	glm::vec3 ambient, diffuse, specular;
@@ -38,5 +42,16 @@ private:
 
 	static const int FRAME_MAX = 100;
 	static const float ANIM_OFFSET;
+	static const int NUM_SOUNDS = 5;
+	static const int MAX_SOUNDS = 50;
+
+	static const char* sound_filepaths[NUM_SOUNDS];
+
+	// For sounds
+	static bool soundsLoaded;
+	static std::deque<sf::Sound*> soundQueue;
+	static sf::SoundBuffer buffers[BrickGeode::NUM_SOUNDS];
 };
+
+#endif
 

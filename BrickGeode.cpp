@@ -1,6 +1,14 @@
 #include "BrickGeode.h"
 
+bool BrickGeode::soundsLoaded = false;
+std::deque<sf::Sound*> BrickGeode::soundQueue;
+
+sf::SoundBuffer BrickGeode::buffers[BrickGeode::NUM_SOUNDS];
+const char* BrickGeode::sound_filepaths[BrickGeode::NUM_SOUNDS] =
+{ "click_1.wav", "click_2.wav", "click_3.wav", "click_4.wav", "click_5.wav" };
+
 const float BrickGeode::ANIM_OFFSET = 0.1f;
+
 
 std::vector<material> BrickGeode::materials = std::vector<material>({
 	// Red plastic
@@ -34,12 +42,20 @@ std::vector<material> BrickGeode::materials = std::vector<material>({
 		32.0)
 });
 
-int BrickGeode::NUM_MATS = materials.size();
+int BrickGeode::NUM_MATS = (int) materials.size();
 
 BrickGeode::BrickGeode(OBJObject *obj, int colorindex)
 {
 	this->obj = obj;
 	this->mat = BrickGeode::materials[colorindex];
+
+	// Load sounds
+	if (!BrickGeode::soundsLoaded) {
+		for (int i = 0; i < BrickGeode::NUM_SOUNDS; i++) {
+			BrickGeode::buffers[i].loadFromFile(BrickGeode::sound_filepaths[i]);
+		}
+		BrickGeode::soundsLoaded = true;
+	}
 }
 
 BrickGeode::BrickGeode(OBJObject *obj, int colorindex, int framedelay)
@@ -47,8 +63,15 @@ BrickGeode::BrickGeode(OBJObject *obj, int colorindex, int framedelay)
 	this->obj = obj;
 	this->mat = BrickGeode::materials[colorindex];
 	this->framedelay = framedelay;
-}
 
+	// Load sounds
+	if (!BrickGeode::soundsLoaded) {
+		for (int i = 0; i < BrickGeode::NUM_SOUNDS; i++) {
+			BrickGeode::buffers[i].loadFromFile(BrickGeode::sound_filepaths[i]);
+		}
+		BrickGeode::soundsLoaded = true;
+	}
+}
 
 void BrickGeode::draw(GLuint shaderProgram)
 {
@@ -60,6 +83,28 @@ void BrickGeode::draw(GLuint shaderProgram)
 
 	if (framedelay <= 0) {
 		glm::mat4 animMat = this->toWorld;
+
+		// If on last frame, play sound effect	
+		if (framecount == 1) {
+
+			// Check is sounds have finished playing
+			if (!(BrickGeode::soundQueue.empty())) {
+				while (BrickGeode::soundQueue.front()->getStatus() == 0) {
+					delete(BrickGeode::soundQueue.front());
+					BrickGeode::soundQueue.pop_front();
+					if (BrickGeode::soundQueue.empty()) { break; }
+				}
+			}
+
+			// Only play if enough sf::Sound objects are available
+			if (BrickGeode::soundQueue.size() < BrickGeode::MAX_SOUNDS) {
+				// Choose random sound
+				int index = rand() % BrickGeode::NUM_SOUNDS;
+				sf::Sound* sound = new sf::Sound(buffers[index]);
+				sound->play();
+				BrickGeode::soundQueue.push_back(sound);
+			}
+		}
 
 		if (framecount > 0) {
 			animMat = glm::translate(animMat, glm::vec3(0.0, framecount * BrickGeode::ANIM_OFFSET, 0.0));
