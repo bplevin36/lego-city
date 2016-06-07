@@ -522,6 +522,12 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 
 			baseTransform->update(glm::mat4());
 		}
+		else if (key == GLFW_KEY_S && (mods & GLFW_MOD_SHIFT)) {
+			BrickGeode::slowAnim();
+		}
+		else if (key == GLFW_KEY_S && !(mods & GLFW_MOD_SHIFT)) {
+			BrickGeode::speedAnim();
+		}
 
 		// Check if escape was pressed
 		else if (key == GLFW_KEY_ESCAPE)

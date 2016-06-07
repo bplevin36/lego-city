@@ -7,7 +7,8 @@ sf::SoundBuffer BrickGeode::buffers[BrickGeode::NUM_SOUNDS];
 const char* BrickGeode::sound_filepaths[BrickGeode::NUM_SOUNDS] =
 { "click_1.wav", "click_2.wav", "click_3.wav", "click_4.wav", "click_5.wav" };
 
-const float BrickGeode::ANIM_OFFSET = 0.1f;
+float BrickGeode::anim_offset = 0.5f;
+int BrickGeode::frame_max = 50;
 
 int BrickGeode::MAT_RED = 0;
 int BrickGeode::MAT_YELLOW = 1;
@@ -15,6 +16,7 @@ int BrickGeode::MAT_GREEN = 2;
 int BrickGeode::MAT_BLUE = 3;
 int BrickGeode::MAT_WHITE = 4;
 int BrickGeode::MAT_GRAY = 5;
+
 std::vector<material> BrickGeode::materials = std::vector<material>({
 	// Red plastic
 	material(	glm::vec3(0.4, 0.0, 0.0),
@@ -90,7 +92,7 @@ BrickGeode::BrickGeode(OBJObject *obj, int colorindex, bool animate)
 	this->mat = BrickGeode::materials[colorindex];
 	
 	if (animate == false) {
-		this->framecount = 0;
+		this->framecount = INT_MAX;
 	}
 
 	// Load sounds
@@ -114,7 +116,7 @@ void BrickGeode::draw(GLuint shaderProgram)
 		glm::mat4 animMat = this->toWorld;
 
 		// If on last frame, play sound effect	
-		if (framecount == 1) {
+		if (framecount == (BrickGeode::frame_max - 1)) {
 
 			// Check is sounds have finished playing
 			if (!(BrickGeode::soundQueue.empty())) {
@@ -135,13 +137,27 @@ void BrickGeode::draw(GLuint shaderProgram)
 			}
 		}
 
-		if (framecount > 0) {
-			animMat = glm::translate(animMat, glm::vec3(0.0, framecount * BrickGeode::ANIM_OFFSET, 0.0));
-			framecount--;
+		if (framecount < BrickGeode::frame_max) {
+			animMat = glm::translate(animMat, glm::vec3(0.0, (BrickGeode::frame_max - framecount) * BrickGeode::anim_offset, 0.0));
+			framecount++;
+		}
+
+		if (framecount == BrickGeode::frame_max) {
+			framecount = INT_MAX; // make sure we never animate thie brick again
 		}
 
 		obj->setToWorld(animMat);
 		obj->draw(shaderProgram);
 	}
 	else { framedelay--; }
+}
+
+void BrickGeode::speedAnim() {
+	BrickGeode::anim_offset *= 2;
+	BrickGeode::frame_max /= 2;
+}
+
+void BrickGeode::slowAnim() {
+	BrickGeode::anim_offset /= 2;
+	BrickGeode::frame_max *= 2;
 }
