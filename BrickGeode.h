@@ -33,6 +33,7 @@ public:
 	void draw(GLuint shaderProgram);
 
 	static std::vector<material> materials;
+	static int MAT_WHITE, MAT_RED, MAT_BLUE, MAT_GREEN, MAT_YELLOW, MAT_GRAY;
 	static int NUM_MATS;
 
 private:

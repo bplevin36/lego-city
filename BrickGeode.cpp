@@ -9,37 +9,48 @@ const char* BrickGeode::sound_filepaths[BrickGeode::NUM_SOUNDS] =
 
 const float BrickGeode::ANIM_OFFSET = 0.1f;
 
-
+int BrickGeode::MAT_RED = 0;
+int BrickGeode::MAT_YELLOW = 1;
+int BrickGeode::MAT_GREEN = 2;
+int BrickGeode::MAT_BLUE = 3;
+int BrickGeode::MAT_WHITE = 4;
+int BrickGeode::MAT_GRAY = 5;
 std::vector<material> BrickGeode::materials = std::vector<material>({
 	// Red plastic
-	material(	glm::vec3(0.0, 0.0, 0.0),
-				glm::vec3(0.5, 0.0, 0.0),
+	material(	glm::vec3(0.4, 0.0, 0.0),
+				glm::vec3(0.8, 0.0, 0.0),
 				glm::vec3(0.7, 0.6, 0.6),
 				32.0),
 
 	// Yellow Plastic
-	material(	glm::vec3(0.0, 0.0, 0.0),
-				glm::vec3(0.5, 0.5, 0.0),
+	material(	glm::vec3(0.4, 0.4, 0.0),
+				glm::vec3(0.8, 0.8, 0.0),
 				glm::vec3(0.6, 0.6, 0.5),
 				32.0),
 
 	// Green Plastic
-	material(	glm::vec3(0.0, 0.0, 0.0),
-				glm::vec3(0.1, 0.35, 0.1),
+	material(	glm::vec3(0.1, 0.35, 0.1),
+				glm::vec3(0.2, 0.7, 0.2),
 				glm::vec3(0.45, 0.55, 0.45),
 				32.0),
 
 	// Blue Plastic
-	material(	glm::vec3(0.0, 0.0, 0.0),
-				glm::vec3(0.0, 0.0, 0.5),
+	material(	glm::vec3(0.0, 0.0, 0.425),
+				glm::vec3(0.0, 0.0, 0.85),
 				glm::vec3(0.6, 0.6, 0.7),
 				32.0),
 
 	// White Plastic
-	material(glm::vec3(0.0, 0.0, 0.0),
-		glm::vec3(0.55, 0.55, 0.55),
+	material(glm::vec3(0.45, 0.45, 0.45),
+		glm::vec3(0.9, 0.9, 0.9),
 		glm::vec3(0.7, 0.7, 0.7),
-		32.0)
+		32.0),
+
+	// Gray Plastic
+	material(glm::vec3(0.45, 0.45, 0.45),
+		glm::vec3(0.6, 0.6, 0.6),
+		glm::vec3(0.6, 0.6, 0.6),
+		8.0)
 });
 
 int BrickGeode::NUM_MATS = (int) materials.size();

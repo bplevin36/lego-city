@@ -7,15 +7,20 @@
 #include "Building.h"
 #include "BrickGeode.h"
 #include <cmath>
-#include <algorithm>
+#include <random>
 #include <time.h>
 #include <stdlib.h>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#define MAP_SIZE 50
+#define MAP_SIZE 500
 #define ROAD_STUD 1
-#define MAJOR_ROAD_WIDTH 8
+#define NE_STUD 2
+#define NW_STUD 3
+#define SW_STUD 4
+#define SE_STUD 5
+#define MAJOR_ROAD_WIDTH 4
+#define MED_ROAD_WIDTH 3
 
 const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
@@ -43,12 +48,12 @@ GLuint shaderProgram;
 GLuint curveShader;
 
 // Default camera parameters
-glm::vec3 cam_pos(0.0f, 0.0f, 10.0f);		// e  | Position of camera
+glm::vec3 cam_pos(0.0f, 65.0f, 100.0f);		// e  | Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d  | This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
 
 //Lighting parameters
-glm::vec4 dirLightDir(-0.2f, -1.0f, -0.3f, 0.0f);
+glm::vec4 dirLightDir(-0.5f, -0.8f, -0.5f, 0.0f);
 glm::vec4 ptLightPos(0.0, 10.0, 1.0, 0.0);
 glm::vec4 ptLightNorm = glm::normalize(ptLightPos);
 glm::vec4 spotPos(0.0f, 2.0f, 10.0f, 0.0f);
@@ -57,6 +62,10 @@ int Window::width;
 int Window::height;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
+
+bool onMap(glm::ivec2 pt, std::vector<std::vector<int>>* map) {
+	return pt.x < map->size() && pt.y < (*map)[0].size() && pt.x >= 0 && pt.y >= 0;
+}
 
 void road_between(glm::ivec2 p1, glm::ivec2 p2, int half_width, std::vector<std::vector<int>>* map) {
 	if (p1.x == p2.x) {//vertical road
@@ -75,6 +84,19 @@ void road_between(glm::ivec2 p1, glm::ivec2 p2, int half_width, std::vector<std:
 	//no road laid if points are not aligned
 }
 
+void shoot_road(glm::ivec2 pt, glm::ivec2 dir, int half_width, std::vector<std::vector<int>>* map) {
+	//std::cout << "Road from: " << glm::to_string(pt) << " in direction: " << glm::to_string(dir) << std::endl;
+	glm::ivec2 perp = glm::ivec2(-dir.y, dir.x);
+	for (glm::ivec2 curr = pt; std::max(curr.x, curr.y) < MAP_SIZE && std::min(curr.x, curr.y) >= 0; curr += dir) {
+		for (int i = -half_width; i <= half_width; i++) {
+			glm::ivec2 stud = curr + (perp*i);
+			if (onMap(stud, &roadMap)) {
+				(*map)[stud.x][stud.y] = ROAD_STUD;
+			}
+		}
+	}
+}
+
 void Window::layout_roads() {
 	//draw corners for debug
 	roadMap[0][0] = ROAD_STUD;
@@ -91,23 +113,45 @@ void Window::layout_roads() {
 		highwayStart = glm::ivec2(MAP_SIZE / 2, 0);
 		highwayEnd = glm::ivec2(MAP_SIZE/2, MAP_SIZE - 1);
 	}
-	road_between(highwayStart, highwayEnd, MAJOR_ROAD_WIDTH / 2, &roadMap);
-	//loop along major road
-	for (glm::ivec2 cell = highwayStart; std::max(cell.x,cell.y) < MAP_SIZE; vertical ? cell.y++ : cell.x++) {
-		glm::ivec2 right, left;
-		if (vertical) {
-			right = cell + glm::ivec2(-MAJOR_ROAD_WIDTH/2, 0);
-			left = cell + glm::ivec2(MAJOR_ROAD_WIDTH/2, 0);
-		} else {
-			right = cell + glm::ivec2(0, MAJOR_ROAD_WIDTH/2);
-			left = cell + glm::ivec2(0, -MAJOR_ROAD_WIDTH/2);
-		}
+	shoot_road(highwayEnd, vertical ? glm::ivec2(0,-1) : glm::ivec2(-1,0), MAJOR_ROAD_WIDTH, &roadMap);
+	//road_between(highwayStart, highwayEnd, MAJOR_ROAD_WIDTH / 2, &roadMap);
+	//loop along major road, adding medium roads randomly
+	std::default_random_engine generator;
+	std::uniform_real_distribution<float> distribution(0.0, 1.0);
+	
+	glm::ivec2 right, left;
+	if (vertical) {
+		right = glm::ivec2(-1, 0);
+		left =  glm::ivec2(1, 0);
+	} else {
+		right = glm::ivec2(0, 1);
+		left = glm::ivec2(0, -1);
 	}
-	// layout road map in road group
+	for (glm::ivec2 cell = highwayStart; std::max(cell.x,cell.y) < MAP_SIZE; vertical ? cell.y++ : cell.x++) {
+		
+		float intersect_prob = 1.0f / (float)std::min(30, MAP_SIZE);
+		bool make_intersect = distribution(generator) < intersect_prob;
+		if (make_intersect) {// make an intersection at this cell
+			float rando = distribution(generator);
+			if (rando > 0.75f) {//one sided intersection
+				shoot_road(cell, right, MED_ROAD_WIDTH, &roadMap);
+			} else if (rando > 0.5f){
+				shoot_road(cell, left, MED_ROAD_WIDTH, &roadMap);
+			} else { //symmetrical intersection
+				shoot_road(cell, right, MED_ROAD_WIDTH, &roadMap);
+				shoot_road(cell, left, MED_ROAD_WIDTH, &roadMap);
+				vertical ? cell.y += MED_ROAD_WIDTH  : cell.x += MED_ROAD_WIDTH;
+			}
+		}
+
+
+	}
+	
+	// create road map in road group
 	for (int x = 0; x < MAP_SIZE; x++) {
 		for (int y = 0; y < MAP_SIZE; y++) {
 			if (roadMap[x][y] == ROAD_STUD){
-				Window::addStud(glm::ivec3(x, -1, y), roads);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GRAY);
 			}
 		}
 	}
@@ -250,8 +294,8 @@ void Window::display_callback(GLFWwindow* window)
 		
 	// Directional light
 	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.direction"), dirLightDir.x, dirLightDir.y, dirLightDir.z);
-	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.1f, 0.24f, 0.14f);
-	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 1.0f, 0.9f, 1.0f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.ambient"), 0.5f, 0.5f, 0.5f);
+	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.diffuse"), 1.0f, 1.0f, 1.0f);
 	glUniform3f(glGetUniformLocation(shaderProgram, "dirLight.specular"), 0.5f, 0.5f, 0.5f);
 
 	// Point light 1
@@ -283,7 +327,7 @@ void Window::display_callback(GLFWwindow* window)
 	roads->draw(shaderProgram);
 
 	// Draw all bricks
-	baseTransform->draw(shaderProgram);
+	//baseTransform->draw(shaderProgram);
 
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
