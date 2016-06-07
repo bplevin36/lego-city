@@ -14,14 +14,15 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#define MAP_SIZE 80
+int MAP_SIZE = 100;
 #define NO_STUD 0
 #define ROAD_STUD 1
 #define INTER_STUD 2
 #define BUILDING_CORNER 3
-#define MAJOR_ROAD_WIDTH 4
-#define MED_ROAD_WIDTH 3
+#define MAJOR_ROAD_WIDTH 3
+#define MED_ROAD_WIDTH 2
 #define SM_ROAD_WIDTH 1
+#define MAX_PARCEL 10
 
 const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
@@ -36,6 +37,7 @@ Skybox* skybox;
 
 std::vector<std::vector<int>>* roadMap = new std::vector<std::vector<int>>(MAP_SIZE, std::vector<int>(MAP_SIZE, NO_STUD));
 std::vector<glm::ivec2> buildingCorners;
+std::vector<Building*> buildings;
 Group* roads;
 
 float spotExp = 1.0f;
@@ -44,15 +46,18 @@ float spotWidth = 12.5f;
 int mouseButton = -1; //current mouse state
 glm::vec2 lastMouse;
 bool lastInitialized = false;
+bool demoing = false;
 
 GLint skyShader;
 GLuint shaderProgram;
 GLuint curveShader;
 
 // Default camera parameters
-glm::vec3 cam_pos(0.0f, 65.0f, 100.0f);		// e  | Position of camera
-glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d  | This is where the camera looks at
+glm::vec3 cam_pos(STUD_DIMS.x* MAP_SIZE / 2, 45.0f, 100.0f);		// e  | Position of camera
+glm::vec3 old_pos = cam_pos;
+glm::vec3 cam_look_at(STUD_DIMS.x* MAP_SIZE/2, 0.0f, STUD_DIMS.y* MAP_SIZE/2);	// d  | This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
+glm::vec3 look_dir(0.0, 0.0, 1.0);
 
 //Lighting parameters
 glm::vec4 dirLightDir(-0.5f, -0.8f, -0.5f, 0.0f);
@@ -65,10 +70,12 @@ int Window::height;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
 
+glm::ivec2 highwayStart, highwayEnd;
+bool vertical = false;
+
 std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0.0, 1.0);
 std::chrono::high_resolution_clock::duration d = std::chrono::high_resolution_clock::now().time_since_epoch();
-
 
 bool onMap(glm::ivec2 pt, std::vector<std::vector<int>>* map) {
 	return pt.x < map->size() && pt.y < (*map)[0].size() && pt.x >= 0 && pt.y >= 0;
@@ -97,9 +104,10 @@ void shoot_road(glm::ivec2 pt, glm::ivec2 dir, int half_width, std::vector<std::
 	bool toQuit = false;
 	int since_inter = 0;
 	glm::ivec2 perp = glm::ivec2(-dir.y, dir.x);
+	glm::ivec2 left, right;
 	for (glm::ivec2 curr = pt; std::max(curr.x, curr.y) < MAP_SIZE && std::min(curr.x, curr.y) >= 0 && !toQuit; curr += dir) {
-		glm::ivec2 left = curr + (half_width + 1)*perp;
-		glm::ivec2 right = curr - (half_width + 1)*perp;
+		left = curr + (half_width + 1)*perp;
+		right = curr - (half_width + 1)*perp;
 		if ((*map)[left.x][left.y] == ROAD_STUD && (*map)[right.x][right.y] == ROAD_STUD) {
 			if (!intersected) {//this means we just entered an intersection so back up and add markers
 				glm::ivec2 lftmark = left - dir;
@@ -162,7 +170,9 @@ void shoot_road(glm::ivec2 pt, glm::ivec2 dir, int half_width, std::vector<std::
 				}
 			}
 		}
-	}
+	}//on loop exit drop edge markers
+	(*map)[left.x][left.y] = INTER_STUD;
+	(*map)[right.x][right.y] = INTER_STUD;
 }
 
 void Window::layout_roads() {
@@ -174,7 +184,7 @@ void Window::layout_roads() {
 	(*roadMap)[0][MAP_SIZE - 1] = ROAD_STUD;
 	(*roadMap)[MAP_SIZE - 1][0] = ROAD_STUD;
 	(*roadMap)[MAP_SIZE - 1][MAP_SIZE - 1] = ROAD_STUD;
-	bool vertical = false;
+	
 	if (distribution(generator) < 0.5f) {
 		vertical = true;
 	}
@@ -200,13 +210,22 @@ void Window::layout_roads() {
 					(*roadMap)[x][y] = BUILDING_CORNER;
 					glm::ivec2 corner(x, y);
 					buildingCorners.push_back(corner);
-					Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED, false);
-				} else {
-					Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE, false);
-				}
+				} 
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN, false);
+			}else{
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN, false);
 			}
 		}
 	}
+}
+
+void place_building(int x, int y, int length, int width, int height) {
+	MatrixTransform* base = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3((float)x, 0.0, (float)y)*STUD_DIMS));
+	//std::cout << "Building base: " << glm::to_string(*base) << std::endl;
+	baseTransform->addChild(base);
+	Building* building = new Building(length, width, height, base);
+	buildings.push_back(building);
+	baseTransform->update(glm::mat4());
 }
 
 void place_buildings() {
@@ -220,13 +239,16 @@ void place_buildings() {
 		do {//find y dimension
 			yDim++;
 		} while (curr.y + yDim < MAP_SIZE && (*roadMap)[curr.x][curr.y + yDim] == NO_STUD);
-
-		MatrixTransform* base = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3((float)curr.x, 0.0, (float)curr.y)*STUD_DIMS));
-		//std::cout << "Building base: " << glm::to_string(*base) << std::endl;
-		
-		baseTransform->addChild(base);
-		Building* building = new Building(xDim, yDim, 8, base);
-		baseTransform->update(glm::mat4());
+		float area = xDim * yDim;
+		float interp = area / 100;
+		int height = std::max((int)(3 / interp), 4);
+		if (xDim > MAX_PARCEL) {
+			xDim -= MAX_PARCEL;
+			place_building(curr.x, curr.y, MAX_PARCEL, yDim, height);
+			place_building(curr.x + MAX_PARCEL, curr.y, xDim, yDim, height);
+		}else{
+			place_building(curr.x, curr.y, xDim, yDim, height);
+		}
 	}
 }
 
@@ -245,6 +267,7 @@ void Window::initialize_objects()
 	place_buildings();
 	roads->update(glm::translate(glm::mat4(), glm::vec3(0.0)));//glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
+	old_pos = glm::vec3(highwayStart.x*STUD_DIMS.x, 5, highwayStart.y*STUD_DIMS.y);
 	
 	/*
 	b1Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0)));
@@ -498,7 +521,6 @@ void Window::cursor_pos_callback(GLFWwindow* window, double xpos, double ypos) {
 		glm::vec3 cross = glm::cross(oldPoint, newPoint);
 
 		float angle = 40.0 * std::acos(glm::dot(oldPoint, newPoint) / (glm::length(newPoint) * glm::length(oldPoint)));
-		//std::cout << "Trying to turn " << angle << " degrees" << std::endl;
 		glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), angle / 180.0f * glm::pi<float>(), cross);
 
 		cam_pos = glm::vec3(rotate * glm::vec4(cam_pos, 0.0));
@@ -533,30 +555,74 @@ void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 }
 
+void Window::resetMap() {
+	baseTransform->clearChildren();
+	buildingCorners.clear();
+	buildings.clear();
+
+	delete roadMap;
+	roadMap = new std::vector<std::vector<int>>(MAP_SIZE, std::vector<int>(MAP_SIZE, NO_STUD));
+	roads->clearChildren();
+	layout_roads();
+	roads->update(glm::translate(glm::mat4(), glm::vec3(0.0)));
+	place_buildings();
+	baseTransform->update(glm::mat4());
+}
+
 void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	// Check for a key press
-	if (action == GLFW_PRESS)
+	if (action == GLFW_PRESS || action == GLFW_REPEAT)
 	{
 		if (key == GLFW_KEY_R) {
-			building1->reset();
-			building2->reset();
-			building3->reset();
-			building4->reset();
-
-			delete roadMap;
-			roadMap = new std::vector<std::vector<int>>(MAP_SIZE, std::vector<int>(MAP_SIZE, NO_STUD));
-			roads->clearChildren();
-			layout_roads();
-			roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE / 2)*STUD_DIMS.x, 0, (-MAP_SIZE / 2))*STUD_DIMS.z));
-
-			baseTransform->update(glm::mat4());
+			resetMap();
 		}
 		else if (key == GLFW_KEY_S && (mods & GLFW_MOD_SHIFT)) {
 			BrickGeode::slowAnim();
 		}
 		else if (key == GLFW_KEY_S && !(mods & GLFW_MOD_SHIFT)) {
 			BrickGeode::speedAnim();
+		}
+		else if (key == GLFW_KEY_D) {
+			demoing = !demoing;
+			if (demoing) {
+				glm::vec3 temp = cam_pos;
+				cam_pos = old_pos;
+				old_pos = temp;
+				cam_look_at = cam_pos + (vertical ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0));
+				cam_up = glm::vec3(0, 1, 0);
+				V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+			}
+			else {
+				glm::vec3 temp = cam_pos;
+				cam_pos = old_pos;
+				old_pos = temp;
+				V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+			}
+		}
+		else if (key == GLFW_KEY_EQUAL) {
+			MAP_SIZE += (float)MAP_SIZE / 4.f;
+			resetMap();
+		}
+		else if (key == GLFW_KEY_MINUS) {
+			MAP_SIZE -= (float)MAP_SIZE / 4.f;
+			resetMap();
+		}
+		else if (key == GLFW_KEY_RIGHT && demoing) {
+			look_dir = glm::vec3(glm::rotate(glm::mat4(1.0f), -0.5f * glm::pi<float>(), glm::vec3(0,1,0))*glm::vec4(look_dir,0.0));
+			cam_look_at = cam_pos + look_dir;
+			V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+		}
+		else if (key == GLFW_KEY_LEFT && demoing) {
+			look_dir = glm::vec3(glm::rotate(glm::mat4(1.0f), 0.5f * glm::pi<float>(), glm::vec3(0, 1, 0))*glm::vec4(look_dir, 0.0));
+			cam_look_at = cam_pos + look_dir;
+			V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+		}
+		else if (key == GLFW_KEY_UP) {
+			glm::vec3 increment = glm::normalize(cam_look_at - cam_pos) * STUD_DIMS;
+			cam_pos += increment;
+			cam_look_at += increment;
+			V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 		}
 
 		// Check if escape was pressed

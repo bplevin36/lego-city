@@ -35,6 +35,8 @@ public:
 	static void addStud(glm::ivec3, Group*, int, bool);
 	static void addBrick(glm::ivec3, glm::ivec2, Group*);
 	static void addBrick(glm::ivec3, glm::ivec2, Group*, int);
+private:
+	static void resetMap();
 };
 
 #endif
