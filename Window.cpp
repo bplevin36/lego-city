@@ -14,13 +14,11 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#define MAP_SIZE 200
+#define MAP_SIZE 80
 #define NO_STUD 0
 #define ROAD_STUD 1
-#define NE_STUD 2
-#define NW_STUD 3
-#define SW_STUD 4
-#define SE_STUD 5
+#define INTER_STUD 2
+#define BUILDING_CORNER 3
 #define MAJOR_ROAD_WIDTH 4
 #define MED_ROAD_WIDTH 3
 #define SM_ROAD_WIDTH 1
@@ -37,6 +35,7 @@ MatrixTransform *baseTransform, *b1Trans, *b2Trans, *b3Trans, *b4Trans;
 Skybox* skybox;
 
 std::vector<std::vector<int>>* roadMap = new std::vector<std::vector<int>>(MAP_SIZE, std::vector<int>(MAP_SIZE, NO_STUD));
+std::vector<glm::ivec2> buildingCorners;
 Group* roads;
 
 float spotExp = 1.0f;
@@ -95,17 +94,21 @@ void road_between(glm::ivec2 p1, glm::ivec2 p2, int half_width, std::vector<std:
 void shoot_road(glm::ivec2 pt, glm::ivec2 dir, int half_width, std::vector<std::vector<int>>* map) {
 	//std::cout << "Road from: " << glm::to_string(pt) << " in direction: " << glm::to_string(dir) << std::endl;
 	bool intersected = true;
+	bool toQuit = false;
 	int since_inter = 0;
 	glm::ivec2 perp = glm::ivec2(-dir.y, dir.x);
-	for (glm::ivec2 curr = pt; std::max(curr.x, curr.y) < MAP_SIZE && std::min(curr.x, curr.y) >= 0; curr += dir) {
+	for (glm::ivec2 curr = pt; std::max(curr.x, curr.y) < MAP_SIZE && std::min(curr.x, curr.y) >= 0 && !toQuit; curr += dir) {
 		glm::ivec2 left = curr + (half_width + 1)*perp;
 		glm::ivec2 right = curr - (half_width + 1)*perp;
 		if ((*map)[left.x][left.y] == ROAD_STUD && (*map)[right.x][right.y] == ROAD_STUD) {
 			if (!intersected) {//this means we just entered an intersection so back up and add markers
 				glm::ivec2 lftmark = left - dir;
 				glm::ivec2 rgtmark = right - dir;
-				(*map)[lftmark.x][lftmark.y] = NW_STUD;
-				(*map)[rgtmark.x][rgtmark.y] = SW_STUD;
+				(*map)[lftmark.x][lftmark.y] = INTER_STUD;
+				(*map)[rgtmark.x][rgtmark.y] = INTER_STUD;
+				if (distribution(generator) < 0.2f && half_width == SM_ROAD_WIDTH) {
+					toQuit = true; // some intersections cause small roads to stop
+				}
 			}
 			intersected = true;//intersection detected
 			since_inter = 0;
@@ -113,11 +116,11 @@ void shoot_road(glm::ivec2 pt, glm::ivec2 dir, int half_width, std::vector<std::
 		//place intersection markers
 		if (intersected) {
 			if ((*map)[left.x][left.y] != ROAD_STUD) {
-				(*map)[left.x][left.y] = NE_STUD;
+				(*map)[left.x][left.y] = INTER_STUD;
 				intersected = false;
 			}
 			if((*map)[right.x][right.y] != ROAD_STUD) {
-				(*map)[right.x][right.y] = SE_STUD;
+				(*map)[right.x][right.y] = INTER_STUD;
 				intersected = false;
 			}
 		}
@@ -167,7 +170,7 @@ void Window::layout_roads() {
 	std::chrono::high_resolution_clock::duration d = std::chrono::high_resolution_clock::now().time_since_epoch();
 	generator.seed(d.count());
 	//draw corners for debug
-	(*roadMap)[0][0] = ROAD_STUD;
+	(*roadMap)[0][0] = INTER_STUD;
 	(*roadMap)[0][MAP_SIZE - 1] = ROAD_STUD;
 	(*roadMap)[MAP_SIZE - 1][0] = ROAD_STUD;
 	(*roadMap)[MAP_SIZE - 1][MAP_SIZE - 1] = ROAD_STUD;
@@ -192,16 +195,36 @@ void Window::layout_roads() {
 		for (int y = 0; y < MAP_SIZE; y++) {
 			if ((*roadMap)[x][y] == ROAD_STUD){
 				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GRAY, false);
-			} else if ((*roadMap)[x][y] == NE_STUD){
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE, false);
-			} else if ((*roadMap)[x][y] == SE_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED, false);
-			} else if ((*roadMap)[x][y] == SW_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_YELLOW, false);
-			} else if ((*roadMap)[x][y] == NW_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN, false);
+			} else if ((*roadMap)[x][y] == INTER_STUD) {
+				if ((x == 0 || (*roadMap)[x - 1][y] == ROAD_STUD) && (y == 0 || (*roadMap)[x][y - 1] == ROAD_STUD)){
+					(*roadMap)[x][y] = BUILDING_CORNER;
+					glm::ivec2 corner(x, y);
+					buildingCorners.push_back(corner);
+					Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED, false);
+				} else {
+					Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE, false);
+				}
 			}
 		}
+	}
+}
+
+void place_buildings() {
+	
+	for (int i = 0; i < buildingCorners.size(); i++) {
+		int xDim = 0, yDim = 0;
+		glm::ivec2 curr = buildingCorners[i];
+		do {//find x dimension
+			xDim++;
+		} while (curr.x + xDim < MAP_SIZE && (*roadMap)[curr.x + xDim][curr.y] == NO_STUD);
+		do {//find y dimension
+			yDim++;
+		} while (curr.y + yDim < MAP_SIZE && (*roadMap)[curr.x][curr.y + yDim] == NO_STUD);
+
+		MatrixTransform* base = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3((float)curr.x, 0.0, (float)curr.y)*STUD_DIMS));
+		baseTransform->addChild(base);
+		Building* building = new Building(xDim, yDim, 8, base);
+		baseTransform->update(glm::mat4());
 	}
 }
 
@@ -216,10 +239,12 @@ void Window::initialize_objects()
 
 	roads = new Group();
 	layout_roads();
+	baseTransform = new MatrixTransform();
+	place_buildings();
 	roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
-	baseTransform = new MatrixTransform();
-
+	
+	/*
 	b1Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0)));
 	b2Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(10.0, 0.0, 0.0)));
 	b3Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.0, -20.0)));
@@ -234,7 +259,7 @@ void Window::initialize_objects()
 	building2 = new Building(12, 12, 6, b2Trans);
 	building3 = new Building(12, 12, 6, b3Trans);
 	building4 = new Building(12, 12, 6, b4Trans);
-
+	*/
 	// Always make sure to update root after adding bricks!
 	baseTransform->update(glm::mat4());
 
