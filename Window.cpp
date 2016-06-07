@@ -22,7 +22,7 @@ int MAP_SIZE = 100;
 #define MAJOR_ROAD_WIDTH 3
 #define MED_ROAD_WIDTH 2
 #define SM_ROAD_WIDTH 1
-#define MAX_PARCEL 10
+#define MAX_PARCEL 15
 
 const glm::vec3 STUD_DIMS = glm::vec3(0.70, 0.85, 0.70);
 
@@ -242,12 +242,18 @@ void place_buildings() {
 		float area = xDim * yDim;
 		float interp = area / 100;
 		int height = std::max((int)(3 / interp), 4);
-		if (xDim > MAX_PARCEL) {
-			xDim -= MAX_PARCEL;
-			place_building(curr.x, curr.y, MAX_PARCEL, yDim, height);
-			place_building(curr.x + MAX_PARCEL, curr.y, xDim, yDim, height);
-		}else{
-			place_building(curr.x, curr.y, xDim, yDim, height);
+		for (int xPos = curr.x; xPos < curr.x + xDim; ) {
+			int xRoom = std::min(MAX_PARCEL-2, curr.x + xDim - xPos);
+			float sample = distribution(generator);
+			int xWidth = sample*(xRoom-2) + 3;
+			for (int yPos = curr.y; yPos < curr.y + yDim;) {
+				int yRoom = std::min(MAX_PARCEL-2, curr.y + yDim - yPos);
+				sample = distribution(generator);
+				int yLength = sample*(yRoom - 2) + 3;
+				place_building(xPos+1, yPos+1, xWidth, yLength, height);
+				yPos += yLength + 1;
+			}
+			xPos += xWidth + 1;
 		}
 	}
 }
