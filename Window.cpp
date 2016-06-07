@@ -229,7 +229,7 @@ void place_building(int x, int y, int length, int width, int height) {
 }
 
 void place_buildings() {
-	
+	bool parked = false;
 	for (int i = 0; i < buildingCorners.size(); i++) {
 		int xDim = 0, yDim = 0;
 		glm::ivec2 curr = buildingCorners[i];
@@ -241,6 +241,19 @@ void place_buildings() {
 		} while (curr.y + yDim < MAP_SIZE && (*roadMap)[curr.x][curr.y + yDim] == NO_STUD);
 		// Area term of height
 		float area = xDim * yDim;
+		if (i > buildingCorners.size() / 4 && !parked && area > 45) {
+			/*
+			for (int x = 0; x < xDim; x++) {
+				for (int y = 0; y < yDim; y++) {
+					if ((x == 0 || x == xDim - 1) || (y == 0 || y == yDim - 1)) {
+						Window::addStud(glm::ivec3(curr.x + x, 0, curr.y + y), roads, BrickGeode::MAT_WHITE, false);
+					}
+				}
+			}
+			*/
+			parked = true;
+			continue;
+		}
 		float interp = area / 100;
 		glm::ivec2 center = glm::ivec2(MAP_SIZE / 2);
 
@@ -253,9 +266,9 @@ void place_buildings() {
 				sample = distribution(generator);
 				int yLength = sample*(yRoom - 2) + 3;
 				float dist = glm::length(glm::vec2(center - glm::ivec2(xPos,yPos)));
-				// Add between 2 and 4 for area, up to 8 for position
+				// Add between 2 and 4 for area, up to 12 for position
 				int height = std::min(std::max((int)(3 / interp), 2), 4)
-					+ std::min((int)((glm::length(glm::vec2(center)) - dist) / (glm::length(glm::vec2(center)) / 10)), 8);
+					+ std::min((int)((glm::length(glm::vec2(center)) - dist) / (glm::length(glm::vec2(center)) / 10)), 12);
 				place_building(xPos+1, yPos+1, xWidth, yLength, height);
 				yPos += yLength + 1;
 			}
