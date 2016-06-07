@@ -222,6 +222,8 @@ void place_buildings() {
 		} while (curr.y + yDim < MAP_SIZE && (*roadMap)[curr.x][curr.y + yDim] == NO_STUD);
 
 		MatrixTransform* base = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3((float)curr.x, 0.0, (float)curr.y)*STUD_DIMS));
+		//std::cout << "Building base: " << glm::to_string(*base) << std::endl;
+		
 		baseTransform->addChild(base);
 		Building* building = new Building(xDim, yDim, 8, base);
 		baseTransform->update(glm::mat4());
