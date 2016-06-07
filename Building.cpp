@@ -209,12 +209,95 @@ glm::ivec2(1, 4)						// brickDims
 )
 };
 
+// 2x2 adjacent by a corner
+GrammarRule* Building::r_2x2_adjacent[8] = {
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+std::vector<int>({ 1, 0 }),
+std::vector<int>({ 0, 0 }),
+std::vector<int>({ 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 1 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 0, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 1, 0 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 0 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 0 }),
+	std::vector<int>({ 0, 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+)
+
+};
+
 std::vector<GrammarRule*> Building::rule_list = std::vector<GrammarRule*>({ 
 	r_1x1_adjacent[0], r_1x1_adjacent[1], r_1x1_adjacent[2], r_1x1_adjacent[3],
 	/*r_1x1_space[0], r_1x1_space[1], r_1x1_space[2], r_1x1_space[3],*/
 	r_1x2_adjacent[0], r_1x2_adjacent[1], r_1x2_adjacent[2], r_1x2_adjacent[3],
 	r_1x3_adjacent[0], r_1x3_adjacent[1], r_1x3_adjacent[2], r_1x3_adjacent[3],
-	r_1x4_adjacent[0], r_1x4_adjacent[1], r_1x4_adjacent[2], r_1x4_adjacent[3]
+	r_1x4_adjacent[0], r_1x4_adjacent[1], r_1x4_adjacent[2], r_1x4_adjacent[3],
+	r_2x2_adjacent[0], r_2x2_adjacent[1], r_2x2_adjacent[2], r_2x2_adjacent[3],
+	r_2x2_adjacent[4], r_2x2_adjacent[5], r_2x2_adjacent[6], r_2x2_adjacent[7]
 });
 
 const int Building::NUM_RULES = rule_list.size();

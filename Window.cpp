@@ -23,8 +23,8 @@ const char* window_title = "GLFW Starter Project";
 
 const char* lego_filepath = "lego1x1.obj";
 OBJObject *brickObj;
-Building *building;
-MatrixTransform *baseTransform;
+Building *building1, *building2, *building3, *building4;
+MatrixTransform *baseTransform, *b1Trans, *b2Trans, *b3Trans, *b4Trans;
 
 Skybox* skybox;
 
@@ -127,7 +127,21 @@ void Window::initialize_objects()
 	roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
 	baseTransform = new MatrixTransform();
-	building = new Building(12, 12, 6, baseTransform);
+
+	b1Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0)));
+	b2Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(10.0, 0.0, 0.0)));
+	b3Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.0, -20.0)));
+	b4Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(10.0, 0.0, -20.0)));
+
+	baseTransform->addChild(b1Trans);
+	baseTransform->addChild(b2Trans);
+	baseTransform->addChild(b3Trans);
+	baseTransform->addChild(b4Trans);
+
+	building1 = new Building(12, 12, 6, b1Trans);
+	building2 = new Building(12, 12, 6, b2Trans);
+	building3 = new Building(12, 12, 6, b3Trans);
+	building4 = new Building(12, 12, 6, b4Trans);
 
 	// Always make sure to update root after adding bricks!
 	baseTransform->update(glm::mat4());
@@ -399,7 +413,10 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 	if (action == GLFW_PRESS)
 	{
 		if (key == GLFW_KEY_R) {
-			building->reset();
+			building1->reset();
+			building2->reset();
+			building3->reset();
+			building4->reset();
 			baseTransform->update(glm::mat4());
 		}
 

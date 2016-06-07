@@ -46,6 +46,7 @@ private:
 	static GrammarRule* r_1x2_adjacent[4];
 	static GrammarRule* r_1x3_adjacent[4];
 	static GrammarRule* r_1x4_adjacent[4];
+	static GrammarRule* r_2x2_adjacent[8];
 };
 
 #endif
