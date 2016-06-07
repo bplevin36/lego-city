@@ -172,6 +172,9 @@ void Window::layout_roads() {
 	(*roadMap)[MAP_SIZE - 1][0] = ROAD_STUD;
 	(*roadMap)[MAP_SIZE - 1][MAP_SIZE - 1] = ROAD_STUD;
 	bool vertical = false;
+	if (distribution(generator) < 0.5f) {
+		vertical = true;
+	}
 	glm::ivec2 highwayStart, highwayEnd;
 	//lay major highway east west
 	if (!vertical) {
