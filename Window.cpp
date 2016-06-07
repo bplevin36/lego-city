@@ -31,8 +31,8 @@ const char* window_title = "GLFW Starter Project";
 
 const char* lego_filepath = "lego1x1.obj";
 OBJObject *brickObj;
-Building *building;
-MatrixTransform *baseTransform;
+Building *building1, *building2, *building3, *building4;
+MatrixTransform *baseTransform, *b1Trans, *b2Trans, *b3Trans, *b4Trans;
 
 Skybox* skybox;
 
@@ -191,15 +191,15 @@ void Window::layout_roads() {
 	for (int x = 0; x < MAP_SIZE; x++) {
 		for (int y = 0; y < MAP_SIZE; y++) {
 			if ((*roadMap)[x][y] == ROAD_STUD){
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GRAY);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GRAY, false);
 			} else if ((*roadMap)[x][y] == NE_STUD){
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE, false);
 			} else if ((*roadMap)[x][y] == SE_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED, false);
 			} else if ((*roadMap)[x][y] == SW_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_YELLOW);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_YELLOW, false);
 			} else if ((*roadMap)[x][y] == NW_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN, false);
 			}
 		}
 	}
@@ -219,7 +219,21 @@ void Window::initialize_objects()
 	roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
 	baseTransform = new MatrixTransform();
-	building = new Building(12, 12, 6, baseTransform);
+
+	b1Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0)));
+	b2Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(10.0, 0.0, 0.0)));
+	b3Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0, 0.0, -20.0)));
+	b4Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(10.0, 0.0, -20.0)));
+
+	baseTransform->addChild(b1Trans);
+	baseTransform->addChild(b2Trans);
+	baseTransform->addChild(b3Trans);
+	baseTransform->addChild(b4Trans);
+
+	building1 = new Building(12, 12, 6, b1Trans);
+	building2 = new Building(12, 12, 6, b2Trans);
+	building3 = new Building(12, 12, 6, b3Trans);
+	building4 = new Building(12, 12, 6, b4Trans);
 
 	// Always make sure to update root after adding bricks!
 	baseTransform->update(glm::mat4());
@@ -361,7 +375,7 @@ void Window::display_callback(GLFWwindow* window)
 	roads->draw(shaderProgram);
 
 	// Draw all bricks
-	//baseTransform->draw(shaderProgram);
+	baseTransform->draw(shaderProgram);
 
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
@@ -401,6 +415,13 @@ void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex) {
 void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex, int framedelay) {
 	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
 	studTransform->addChild(new BrickGeode(brickObj, colorindex, framedelay));
+	group->addChild(studTransform);
+}
+
+// Overloaded version to allow brick color specification and animation toggle boolean
+void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex, bool animate) {
+	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
+	studTransform->addChild(new BrickGeode(brickObj, colorindex, animate));
 	group->addChild(studTransform);
 }
 
@@ -491,13 +512,17 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 	if (action == GLFW_PRESS)
 	{
 		if (key == GLFW_KEY_R) {
+			building1->reset();
+			building2->reset();
+			building3->reset();
+			building4->reset();
+
 			delete roadMap;
 			roadMap = new std::vector<std::vector<int>>(MAP_SIZE, std::vector<int>(MAP_SIZE, NO_STUD));
 			roads->clearChildren();
 			layout_roads();
 			roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE / 2)*STUD_DIMS.x, 0, (-MAP_SIZE / 2))*STUD_DIMS.z));
 
-			building->reset();
 			baseTransform->update(glm::mat4());
 		}
 

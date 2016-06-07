@@ -84,6 +84,24 @@ BrickGeode::BrickGeode(OBJObject *obj, int colorindex, int framedelay)
 	}
 }
 
+BrickGeode::BrickGeode(OBJObject *obj, int colorindex, bool animate)
+{
+	this->obj = obj;
+	this->mat = BrickGeode::materials[colorindex];
+	
+	if (animate == false) {
+		this->framecount = 0;
+	}
+
+	// Load sounds
+	if (!BrickGeode::soundsLoaded) {
+		for (int i = 0; i < BrickGeode::NUM_SOUNDS; i++) {
+			BrickGeode::buffers[i].loadFromFile(BrickGeode::sound_filepaths[i]);
+		}
+		BrickGeode::soundsLoaded = true;
+	}
+}
+
 void BrickGeode::draw(GLuint shaderProgram)
 {
 	// Set material of brick

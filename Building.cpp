@@ -5,7 +5,7 @@
 
 /* Declaration of grammar rules */
 
-// 1x1 adjacent
+// 1x1 adjacent: For facade details
 GrammarRule* Building::r_1x1_adjacent[4] = {
 
 new GrammarRule(
@@ -83,7 +83,7 @@ glm::ivec2(1, 1)						// brickDims
 )
 };
 
-// 1x2 adjacent lengthwise
+// 1x2 adjacent lengthwise: For jutting features and courtyards
 GrammarRule* Building::r_1x2_adjacent[4] = {
 
 	new GrammarRule(
@@ -123,7 +123,7 @@ glm::ivec2(1, 2)						// brickDims
 )
 };
 
-// 1x3 adjacent lengthwise
+// 1x3 adjacent lengthwise: For jutting features and courtyards
 GrammarRule* Building::r_1x3_adjacent[4] = {
 
 new GrammarRule(
@@ -165,7 +165,7 @@ glm::ivec2(1, 3)						// brickDims
 )
 };
 
-// 1x4 adjacent lengthwise
+// 1x4 adjacent lengthwise: For jutting features and courtyards
 GrammarRule* Building::r_1x4_adjacent[4] = {
 
 new GrammarRule(
@@ -209,12 +209,234 @@ glm::ivec2(1, 4)						// brickDims
 )
 };
 
+// 2x2 adjacent by a full edge: For solid foundations
+GrammarRule* Building::r_2x2_adjacent[4] = {
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+std::vector<int>({ 1, 1 }),
+std::vector<int>({ 0, 0 }),
+std::vector<int>({ 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 1, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 2)						// brickDims
+)
+
+};
+
+// 2x3 adjacent by a full edge: For solid foundations
+GrammarRule* Building::r_2x3_adjacent[8] = {
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+std::vector<int>({ 1, 1 }),
+std::vector<int>({ 0, 0 }),
+std::vector<int>({ 0, 0 }),
+std::vector<int>({ 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(3, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 1, 1 }),
+	std::vector<int>({ 0, 0, 0 }),
+	std::vector<int>({ 0, 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(2, 3)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 0, 0, 0 }),
+	std::vector<int>({ 1, 0, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(2, 3)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(3, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 1, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(3, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 0 }),
+	std::vector<int>({ 0, 0, 0 }),
+	std::vector<int>({ 1, 1, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 3)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 3)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(3, 2)						// brickDims
+)
+
+};
+
+// 2x4 adjacent by a full edge: For solid foundations
+GrammarRule* Building::r_2x4_adjacent[8] = {
+
+	new GrammarRule(
+		std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 1 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(4, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 1, 1, 1 }),
+	std::vector<int>({ 0, 0, 0, 0 }),
+	std::vector<int>({ 0, 0, 0, 0 })
+}),
+glm::ivec2(1, 0),						// brickPos
+glm::ivec2(2, 4)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 0, 0, 0, 0 }),
+	std::vector<int>({ 1, 0, 0, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(2, 4)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 }),
+	std::vector<int>({ 1, 0, 0 })
+}),
+glm::ivec2(0, 1),						// brickPos
+glm::ivec2(4, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 0, 0 }),
+	std::vector<int>({ 1, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(4, 2)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 0, 0 }),
+	std::vector<int>({ 0, 0, 0, 0 }),
+	std::vector<int>({ 1, 1, 1, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 4)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 0, 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(2, 4)						// brickDims
+),
+
+new GrammarRule(
+	std::vector<std::vector<int>>({		// pattern
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 1 }),
+	std::vector<int>({ 0, 0, 1 })
+}),
+glm::ivec2(0, 0),						// brickPos
+glm::ivec2(4, 2)						// brickDims
+)
+
+};
+
 std::vector<GrammarRule*> Building::rule_list = std::vector<GrammarRule*>({ 
 	r_1x1_adjacent[0], r_1x1_adjacent[1], r_1x1_adjacent[2], r_1x1_adjacent[3],
 	/*r_1x1_space[0], r_1x1_space[1], r_1x1_space[2], r_1x1_space[3],*/
 	r_1x2_adjacent[0], r_1x2_adjacent[1], r_1x2_adjacent[2], r_1x2_adjacent[3],
 	r_1x3_adjacent[0], r_1x3_adjacent[1], r_1x3_adjacent[2], r_1x3_adjacent[3],
-	r_1x4_adjacent[0], r_1x4_adjacent[1], r_1x4_adjacent[2], r_1x4_adjacent[3]
+	r_1x4_adjacent[0], r_1x4_adjacent[1], r_1x4_adjacent[2], r_1x4_adjacent[3],
+	r_2x2_adjacent[0], r_2x2_adjacent[1], r_2x2_adjacent[2], r_2x2_adjacent[3],
+	r_2x3_adjacent[0], r_2x3_adjacent[1], r_2x3_adjacent[2], r_2x3_adjacent[3],
+	r_2x3_adjacent[4], r_2x3_adjacent[5], r_2x3_adjacent[6], r_2x3_adjacent[7],
+	r_2x4_adjacent[0], r_2x4_adjacent[1], r_2x4_adjacent[2], r_2x4_adjacent[3],
+	r_2x4_adjacent[4], r_2x4_adjacent[5], r_2x4_adjacent[6], r_2x4_adjacent[7]
 });
 
 const int Building::NUM_RULES = rule_list.size();
@@ -264,16 +486,6 @@ Building::Building(int length, int width, int height, Group* group)
 		}
 	}
 
-	/*
-	for (int x = 0; x < length; x++) {
-		for (int z = 0; z < width; z++) {
-			printf("[%d, %d] = %d\n", x, z, studs[x][z]);
-		}
-	}
-	printf("\n");
-	*/
-
-	printf("Applying rules!\n");
 	applyRules();
 	construct();
 }
@@ -292,7 +504,7 @@ int Building::applyRandomRule()
 		int index = rand() % (remainingRules->size());
 		GrammarRule* rule = (*remainingRules)[index];
 		remainingRules->erase(remainingRules->begin() + index);
-		printf("Attempting to apply rule #%d...\n", index);
+		//printf("Attempting to apply rule #%d...\n", index);
 
 		for (int x = 0; x < length; x++) {
 			for (int z = 0; z < width; z++) {
@@ -323,7 +535,7 @@ int Building::applyRandomRule()
 					}
 				}
 				if (match) {
-					printf("Match!\n");
+					//printf("Match!\n");
 					// Add to our list of match positions
 					matches.push_back(glm::ivec2(x, z));
 				}
@@ -357,10 +569,10 @@ void Building::applyRules()
 {
 	// Generate random number of rules to apply
 	int maxrules = (rand() % (max_rules_applied - min_rules_applied + 1)) + min_rules_applied;
-	printf("Going to apply %d rules!\n", maxrules);
+	//printf("Going to apply %d rules!\n", maxrules);
 	for (int rulenum = 0; rulenum < maxrules; rulenum++) {
 		if (!this->applyRandomRule()) {
-			printf("No rules matched.\n");
+			//printf("No rules matched.\n");
 			return;
 		}
 	}
@@ -406,7 +618,6 @@ void Building::reset()
 		}
 	}
 
-	printf("Applying rules!\n");
 	applyRules();
 	construct();
 }
