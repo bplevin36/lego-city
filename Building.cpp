@@ -1,7 +1,8 @@
 #include "Building.h"
-#include <stdlib.h>
-#include <time.h>
-#include <algorithm>
+
+std::uniform_int_distribution<int> Building::distribution = std::uniform_int_distribution<int>(0, INT_MAX);
+std::default_random_engine Building::generator;
+
 
 /* Declaration of grammar rules */
 
@@ -492,6 +493,10 @@ Building::Building(int length, int width, int height, Group* group)
 
 int Building::applyRandomRule()
 {
+	// Seed rng
+	std::chrono::high_resolution_clock::duration d = std::chrono::high_resolution_clock::now().time_since_epoch();
+	generator.seed(d.count());
+
 	// Get list of rules
 	std::vector<GrammarRule*> *remainingRules = new std::vector<GrammarRule*>(Building::rule_list);
 
@@ -501,7 +506,7 @@ int Building::applyRandomRule()
 		std::vector<glm::ivec2> matches;
 
 		// Choose random rule and pop it from the list
-		int index = rand() % (remainingRules->size());
+		int index = this->distribution(generator) % (remainingRules->size());
 		GrammarRule* rule = (*remainingRules)[index];
 		remainingRules->erase(remainingRules->begin() + index);
 		//printf("Attempting to apply rule #%d...\n", index);
@@ -544,7 +549,7 @@ int Building::applyRandomRule()
 
 		if (matches.size() > 0) {
 			// If we have some match positions, choose one randomly
-			index = rand() % (matches.size());
+			index = distribution(generator) % (matches.size());
 			glm::ivec2 pos = matches[index];
 
 			// now replace the pattern with the output
@@ -568,7 +573,7 @@ int Building::applyRandomRule()
 void Building::applyRules()
 {
 	// Generate random number of rules to apply
-	int maxrules = (rand() % (max_rules_applied - min_rules_applied + 1)) + min_rules_applied;
+	int maxrules = (distribution(generator) % (max_rules_applied - min_rules_applied + 1)) + min_rules_applied;
 	//printf("Going to apply %d rules!\n", maxrules);
 	for (int rulenum = 0; rulenum < maxrules; rulenum++) {
 		if (!this->applyRandomRule()) {

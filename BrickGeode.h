@@ -6,6 +6,7 @@
 #include <time.h>
 #include <vector>
 #include <deque>
+#include <limits.h>
 #include <SFML/Audio.hpp>
 
 struct material {
@@ -33,17 +34,21 @@ public:
 	BrickGeode(OBJObject *obj, int colorindex, bool animate);
 	void draw(GLuint shaderProgram);
 
+	static void speedAnim();
+	static void slowAnim();
+
 	static std::vector<material> materials;
 	static int MAT_WHITE, MAT_RED, MAT_BLUE, MAT_GREEN, MAT_YELLOW, MAT_GRAY;
 	static int NUM_MATS;
 
 private:
-	int framecount = BrickGeode::FRAME_MAX;
+	static float BrickGeode::anim_offset;
+	static int BrickGeode::frame_max;
+
+	int framecount = 0;
 	int framedelay = 0;
 	material mat;
 
-	static const int FRAME_MAX = 100;
-	static const float ANIM_OFFSET;
 	static const int NUM_SOUNDS = 5;
 	static const int MAX_SOUNDS = 50;
 
