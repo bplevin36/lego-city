@@ -13,7 +13,7 @@
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-#define MAP_SIZE 500
+#define MAP_SIZE 250
 #define ROAD_STUD 1
 #define NE_STUD 2
 #define NW_STUD 3
@@ -327,7 +327,7 @@ void Window::display_callback(GLFWwindow* window)
 	roads->draw(shaderProgram);
 
 	// Draw all bricks
-	//baseTransform->draw(shaderProgram);
+	baseTransform->draw(shaderProgram);
 
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
