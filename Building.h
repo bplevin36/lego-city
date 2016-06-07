@@ -4,6 +4,12 @@
 #include "Group.h"
 #include "GrammarRule.h"
 #include <vector>
+#include <cmath>
+#include <chrono>
+#include <stdlib.h>
+#include <random>
+#include <time.h>
+#include <algorithm>
 
 struct brick
 {
@@ -26,6 +32,9 @@ private:
 	static const int MIN_RULES_APPLIED = 5;
 	static const int MAX_RULES_APPLIED = 8;
 	int width, length, height, min_rules_applied, max_rules_applied;
+
+	static std::default_random_engine generator;
+	static std::uniform_int_distribution<int> distribution;
 
 	/* In this 2d vector, 
 	 *	0 represents open space
