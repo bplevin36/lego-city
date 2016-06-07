@@ -239,9 +239,15 @@ void place_buildings() {
 		do {//find y dimension
 			yDim++;
 		} while (curr.y + yDim < MAP_SIZE && (*roadMap)[curr.x][curr.y + yDim] == NO_STUD);
+		// Area term of height
 		float area = xDim * yDim;
 		float interp = area / 100;
-		int height = std::max((int)(3 / interp), 4);
+		// Center term of height
+		glm::ivec2 center = glm::ivec2(MAP_SIZE / 2);
+		float dist = glm::length(glm::vec2(center - curr));
+		// Add between 2 and 4 for area, up to 8 for position
+		int height = std::min(std::max((int)(3 / interp), 2), 4) 
+			+ std::min((int)((glm::length(glm::vec2(center)) - dist) / (glm::length(glm::vec2(center)) / 10)), 8);
 		if (xDim > MAX_PARCEL) {
 			xDim -= MAX_PARCEL;
 			place_building(curr.x, curr.y, MAX_PARCEL, yDim, height);
@@ -267,7 +273,7 @@ void Window::initialize_objects()
 	place_buildings();
 	roads->update(glm::translate(glm::mat4(), glm::vec3(0.0)));//glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
-	old_pos = glm::vec3(highwayStart.x*STUD_DIMS.x, 5, highwayStart.y*STUD_DIMS.y);
+	old_pos = glm::vec3(highwayStart.x*STUD_DIMS.x, 2, highwayStart.y*STUD_DIMS.y);
 	
 	/*
 	b1Trans = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(0.0)));
