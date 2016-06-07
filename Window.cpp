@@ -188,15 +188,15 @@ void Window::layout_roads() {
 	for (int x = 0; x < MAP_SIZE; x++) {
 		for (int y = 0; y < MAP_SIZE; y++) {
 			if ((*roadMap)[x][y] == ROAD_STUD){
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GRAY);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GRAY, false);
 			} else if ((*roadMap)[x][y] == NE_STUD){
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_BLUE, false);
 			} else if ((*roadMap)[x][y] == SE_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_RED, false);
 			} else if ((*roadMap)[x][y] == SW_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_YELLOW);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_YELLOW, false);
 			} else if ((*roadMap)[x][y] == NW_STUD) {
-				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN);
+				Window::addStud(glm::ivec3(x, -1, y), roads, BrickGeode::MAT_GREEN, false);
 			}
 		}
 	}
@@ -412,6 +412,13 @@ void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex) {
 void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex, int framedelay) {
 	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
 	studTransform->addChild(new BrickGeode(brickObj, colorindex, framedelay));
+	group->addChild(studTransform);
+}
+
+// Overloaded version to allow brick color specification and animation toggle boolean
+void Window::addStud(glm::ivec3 studpos, Group* group, int colorindex, bool animate) {
+	MatrixTransform *studTransform = new MatrixTransform(glm::translate(glm::mat4(), glm::vec3(studpos) * STUD_DIMS));
+	studTransform->addChild(new BrickGeode(brickObj, colorindex, animate));
 	group->addChild(studTransform);
 }
 

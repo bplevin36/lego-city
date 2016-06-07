@@ -30,6 +30,7 @@ class BrickGeode : public Geode
 public:
 	BrickGeode(OBJObject *obj, int colorindex);
 	BrickGeode(OBJObject *obj, int colorindex, int framedelay);
+	BrickGeode(OBJObject *obj, int colorindex, bool animate);
 	void draw(GLuint shaderProgram);
 
 	static std::vector<material> materials;

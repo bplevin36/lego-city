@@ -486,16 +486,6 @@ Building::Building(int length, int width, int height, Group* group)
 		}
 	}
 
-	/*
-	for (int x = 0; x < length; x++) {
-		for (int z = 0; z < width; z++) {
-			printf("[%d, %d] = %d\n", x, z, studs[x][z]);
-		}
-	}
-	printf("\n");
-	*/
-
-	printf("Applying rules!\n");
 	applyRules();
 	construct();
 }
@@ -514,7 +504,7 @@ int Building::applyRandomRule()
 		int index = rand() % (remainingRules->size());
 		GrammarRule* rule = (*remainingRules)[index];
 		remainingRules->erase(remainingRules->begin() + index);
-		printf("Attempting to apply rule #%d...\n", index);
+		//printf("Attempting to apply rule #%d...\n", index);
 
 		for (int x = 0; x < length; x++) {
 			for (int z = 0; z < width; z++) {
@@ -545,7 +535,7 @@ int Building::applyRandomRule()
 					}
 				}
 				if (match) {
-					printf("Match!\n");
+					//printf("Match!\n");
 					// Add to our list of match positions
 					matches.push_back(glm::ivec2(x, z));
 				}
@@ -579,10 +569,10 @@ void Building::applyRules()
 {
 	// Generate random number of rules to apply
 	int maxrules = (rand() % (max_rules_applied - min_rules_applied + 1)) + min_rules_applied;
-	printf("Going to apply %d rules!\n", maxrules);
+	//printf("Going to apply %d rules!\n", maxrules);
 	for (int rulenum = 0; rulenum < maxrules; rulenum++) {
 		if (!this->applyRandomRule()) {
-			printf("No rules matched.\n");
+			//printf("No rules matched.\n");
 			return;
 		}
 	}
@@ -628,7 +618,6 @@ void Building::reset()
 		}
 	}
 
-	printf("Applying rules!\n");
 	applyRules();
 	construct();
 }
