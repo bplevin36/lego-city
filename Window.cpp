@@ -243,7 +243,7 @@ void Window::initialize_objects()
 	layout_roads();
 	baseTransform = new MatrixTransform();
 	place_buildings();
-	roads->update(glm::translate(glm::mat4(), glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
+	roads->update(glm::translate(glm::mat4(), glm::vec3(0.0)));//glm::vec3((-MAP_SIZE/2)*STUD_DIMS.x, 0, (-MAP_SIZE/2))*STUD_DIMS.z));
 
 	
 	/*

@@ -588,7 +588,7 @@ void Building::construct()
 	// Add same brick pattern to every floor
 	for (int i = 0; i < bricks.size(); i++) {
 		for (int j = 0; j < this->height; j++) {
-			int framedelay = (i * 10) + (j * (bricks.size() * 10));
+			int framedelay = (i * 3) + (j * (bricks.size() * 3));
 			Window::addBrick(glm::vec3(bricks[i].pos.x, j, bricks[i].pos.y), bricks[i].dims, this->group, framedelay);
 		}
 	}
