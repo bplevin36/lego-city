@@ -269,7 +269,15 @@ void place_buildings() {
 				// Add between 2 and 4 for area, up to 12 for position
 				int height = std::min(std::max((int)(3 / interp), 2), 4)
 					+ std::min((int)((glm::length(glm::vec2(center)) - dist) / (glm::length(glm::vec2(center)) / 10)), 12);
-				place_building(xPos+1, yPos+1, xWidth, yLength, height);
+				if (xPos + 1 + xWidth > curr.x + xDim) {
+					xWidth--;
+				}
+				if (yPos + 1 + yLength > curr.y + yDim) {
+					yLength--;
+				}
+				if (xWidth > 1 && yLength > 1) {
+					place_building(xPos + 1, yPos + 1, xWidth, yLength, height);
+				}
 				yPos += yLength + 1;
 			}
 			xPos += xWidth + 1;
